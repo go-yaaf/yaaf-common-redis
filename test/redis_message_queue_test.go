@@ -33,7 +33,7 @@ func TestRedisQueueSuite(t *testing.T) {
 // SetupSuite will run once when the test suite begins
 func (s *RedisQueueTestSuite) SetupSuite() {
 
-	// Create command to run postgresql container
+	// Create command to run Redis container
 	err := DockerUtils().CreateContainer("redis:7").
 		Name(containerName).
 		Port(dbPort, dbPort).

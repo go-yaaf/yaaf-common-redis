@@ -6,7 +6,6 @@
 package facilities
 
 import (
-	_ "github.com/go-redis/redis"
 	"time"
 
 	. "github.com/go-yaaf/yaaf-common/entity"
@@ -68,7 +67,6 @@ func (r *RedisAdapter) GetKeys(factory EntityFactory, keys ...string) ([]Entity,
 
 // SetNX Set the value of a key only if the key does not exist
 func (r *RedisAdapter) SetNX(key string, entity Entity, expiration time.Duration) (bool, error) {
-
 	if bytes, err := r.entityToRaw(entity); err != nil {
 		return false, err
 	} else {

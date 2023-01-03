@@ -12,8 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-redis/redis"
-	// _ "github.com/go-redis/redis/v9"
+	"github.com/go-redis/redis/v8"
 
 	"github.com/go-yaaf/yaaf-common/database"
 	. "github.com/go-yaaf/yaaf-common/entity"
@@ -52,6 +51,23 @@ func NewRedisDataCache(URI string) (dbs database.IDataCache, err error) {
 			ctx:  context.Background(),
 		}, nil
 
+	}
+}
+
+// NewRedisMessageBus factory method for Redis IMessageBus implementation
+//
+// param: URI - represents the redis connection string in the format of: redis://user:password@host:port
+// return: IDataCache instance, error
+func NewRedisMessageBus(URI string) (mq IMessageBus, err error) {
+
+	if options, err := redis.ParseURL(URI); err != nil {
+		return nil, err
+	} else {
+		return &RedisAdapter{
+			rc:   redis.NewClient(options),
+			subs: make(map[string]subscriber),
+			ctx:  context.Background(),
+		}, nil
 	}
 }
 

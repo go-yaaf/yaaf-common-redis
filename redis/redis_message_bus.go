@@ -7,8 +7,7 @@ package facilities
 
 import (
 	"encoding/json"
-	"github.com/go-redis/redis"
-	// _ "github.com/go-redis/redis/v9"
+	"github.com/go-redis/redis/v8"
 	"github.com/go-yaaf/yaaf-common/logger"
 	"github.com/google/uuid"
 	"strings"

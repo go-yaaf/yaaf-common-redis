@@ -1,5 +1,3 @@
-// Copyright (c) 2022. Motty Cohen
-//
 // Structure definitions and factory method for redis implementation of IDataCache and IMessageBus
 //
 
@@ -29,20 +27,23 @@ func (r *RedisAdapter) Get(factory EntityFactory, key string) (result Entity, er
 	}
 }
 
-// Set value of key with expiration
-func (r *RedisAdapter) Set(key string, entity Entity) error {
-	return r.SetWithExp(key, entity, 0)
+// Set value of key with optional expiration
+func (r *RedisAdapter) Set(key string, entity Entity, expiration ...time.Duration) error {
+	if bytes, err := r.entityToRaw(entity); err != nil {
+		return err
+	} else {
+		if len(expiration) > 0 {
+			return r.rc.Set(r.ctx, key, bytes, expiration[0]).Err()
+		} else {
+			return r.rc.Set(r.ctx, key, bytes, 0).Err()
+		}
+	}
+
 }
 
 // Del Delete keys
 func (r *RedisAdapter) Del(keys ...string) error {
 	return r.rc.Del(r.ctx, keys...).Err()
-}
-
-// MGet Get the value of all the given keys
-// Deprecated: Use GetKeys instead
-func (r *RedisAdapter) MGet(factory EntityFactory, keys ...string) ([]Entity, error) {
-	return r.GetKeys(factory, keys...)
 }
 
 // GetKeys Get the value of all the given keys
@@ -65,8 +66,8 @@ func (r *RedisAdapter) GetKeys(factory EntityFactory, keys ...string) ([]Entity,
 	}
 }
 
-// SetNX Set the value of a key only if the key does not exist
-func (r *RedisAdapter) SetNX(key string, entity Entity, expiration time.Duration) (bool, error) {
+// Add Set the value of a key only if the key does not exist
+func (r *RedisAdapter) Add(key string, entity Entity, expiration time.Duration) (bool, error) {
 	if bytes, err := r.entityToRaw(entity); err != nil {
 		return false, err
 	} else {
@@ -79,15 +80,6 @@ func (r *RedisAdapter) SetNX(key string, entity Entity, expiration time.Duration
 				return true, nil
 			}
 		}
-	}
-}
-
-// SetWithExp Set object value to a key with expiration
-func (r *RedisAdapter) SetWithExp(key string, entity Entity, expiration time.Duration) error {
-	if bytes, err := r.entityToRaw(entity); err != nil {
-		return err
-	} else {
-		return r.rc.Set(r.ctx, key, bytes, expiration).Err()
 	}
 }
 
@@ -175,8 +167,8 @@ func (r *RedisAdapter) HDel(key string, fields ...string) error {
 	return r.rc.HDel(r.ctx, key, fields...).Err()
 }
 
-// HSetNX Set the value of a key only if the key does not exist
-func (r *RedisAdapter) HSetNX(key, field string, entity Entity) (bool, error) {
+// HAdd sets the value of a key only if the key does not exist
+func (r *RedisAdapter) HAdd(key, field string, entity Entity) (bool, error) {
 	if bytes, err := r.entityToRaw(entity); err != nil {
 		return false, err
 	} else {

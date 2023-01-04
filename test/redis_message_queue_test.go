@@ -9,6 +9,7 @@ import (
 	facilities "github.com/go-yaaf/yaaf-common-redis/redis"
 	"github.com/go-yaaf/yaaf-common/entity"
 	"github.com/go-yaaf/yaaf-common/messaging"
+	"github.com/go-yaaf/yaaf-common/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"os"
@@ -34,7 +35,7 @@ func TestRedisQueueSuite(t *testing.T) {
 func (s *RedisQueueTestSuite) SetupSuite() {
 
 	// Create command to run Redis container
-	err := DockerUtils().CreateContainer("redis:7").
+	err := utils.DockerUtils().CreateContainer("redis:7").
 		Name(containerName).
 		Port(dbPort, dbPort).
 		Label("env", "test").
@@ -51,7 +52,7 @@ func (s *RedisQueueTestSuite) SetupSuite() {
 
 // TearDownSuite will be run once at the end of the testing suite, after all tests have been run
 func (s *RedisQueueTestSuite) TearDownSuite() {
-	err := DockerUtils().StopContainer(containerName)
+	err := utils.DockerUtils().StopContainer(containerName)
 	assert.Nil(s.T(), err)
 }
 

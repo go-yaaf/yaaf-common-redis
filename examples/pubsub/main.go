@@ -36,15 +36,16 @@ func main() {
 
 	// Sync all publishers and consumers
 	wg := &sync.WaitGroup{}
-	wg.Add(4)
+	wg.Add(2)
 
-	// Create and run 2 publishers
-	NewRedisPublisher(redisUri).Name("water_meter_1").Queue("water").Duration(time.Minute).Interval(time.Second).Start(wg)
-	NewRedisPublisher(redisUri).Name("water_meter_2").Queue("water").Duration(time.Minute).Interval(time.Second * 2).Start(wg)
+	// Create status message publisher
+	NewStatusPublisher(redisUri).Name("publisher").Topic("status").Duration(time.Minute).Interval(time.Millisecond * 500).Start(wg)
 
-	// Create and run 2 consumers
-	NewRedisConsumer(redisUri).Name("consumer_1").Queue("water").Start(wg)
-	NewRedisConsumer(redisUri).Name("consumer_2").Queue("water").Start(wg)
+	// Create and run logger consumer
+	NewStatusLogger(redisUri).Name("logger").Topic("status").Start()
+
+	// Create and run average aggregator consumer
+	NewStatusAggregator(redisUri).Name("average").Topic("status").Duration(time.Minute).Interval(time.Second * 5).Start(wg)
 
 	wg.Wait()
 	logger.Info("Done")

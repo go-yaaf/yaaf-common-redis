@@ -1,5 +1,3 @@
-// Copyright (c) 2022. Motty Cohen
-//
 // Structure definitions and factory method for redis implementation of IDataCache and IMessageBus
 //
 
@@ -33,7 +31,7 @@ func (r *RedisAdapter) Publish(messages ...IMessage) error {
 }
 
 // Subscribe on topics
-func (r *RedisAdapter) Subscribe(callback SubscriptionCallback, factory MessageFactory, topics ...string) (subscriptionId string) {
+func (r *RedisAdapter) Subscribe(factory MessageFactory, callback SubscriptionCallback, topics ...string) (subscriptionId string) {
 
 	topicArray := make([]string, 0)
 
@@ -77,7 +75,6 @@ LOOP:
 			if err := json.Unmarshal([]byte(m.Payload), &message); err != nil {
 				continue
 			} else {
-				message.(*BaseMessage).MsgTopic = m.Channel
 				go callback(message)
 			}
 		}

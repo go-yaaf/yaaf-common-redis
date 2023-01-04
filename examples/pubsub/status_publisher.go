@@ -10,46 +10,46 @@ import (
 	"time"
 )
 
-type RedisPublisher struct {
+type StatusPublisher struct {
 	uri      string
 	name     string
-	queue    string
+	topic    string
 	duration time.Duration
 	interval time.Duration
 	error    error
 }
 
-// NewRedisPublisher is a factory method
-func NewRedisPublisher(uri string) *RedisPublisher {
-	return &RedisPublisher{uri: uri, name: "demo", queue: "queue", duration: time.Minute, interval: time.Second}
+// NewStatusPublisher is a factory method
+func NewStatusPublisher(uri string) *StatusPublisher {
+	return &StatusPublisher{uri: uri, name: "demo", topic: "topic", duration: time.Hour, interval: time.Second}
 }
 
 // Name configure message queue (topic) name
-func (p *RedisPublisher) Name(name string) *RedisPublisher {
+func (p *StatusPublisher) Name(name string) *StatusPublisher {
 	p.name = name
 	return p
 }
 
-// Queue configure message queue (topic) name
-func (p *RedisPublisher) Queue(queue string) *RedisPublisher {
-	p.queue = queue
+// Topic configure message topic name
+func (p *StatusPublisher) Topic(topic string) *StatusPublisher {
+	p.topic = topic
 	return p
 }
 
 // Duration configure for how long the publisher will run
-func (p *RedisPublisher) Duration(duration time.Duration) *RedisPublisher {
+func (p *StatusPublisher) Duration(duration time.Duration) *StatusPublisher {
 	p.duration = duration
 	return p
 }
 
 // Interval configure the time interval between messages
-func (p *RedisPublisher) Interval(interval time.Duration) *RedisPublisher {
+func (p *StatusPublisher) Interval(interval time.Duration) *StatusPublisher {
 	p.interval = interval
 	return p
 }
 
 // Start the publisher
-func (p *RedisPublisher) Start(wg *sync.WaitGroup) {
+func (p *StatusPublisher) Start(wg *sync.WaitGroup) {
 	if mq, err := cr.NewRedisMessageBus(p.uri); err != nil {
 		p.error = err
 		wg.Done()
@@ -59,12 +59,12 @@ func (p *RedisPublisher) Start(wg *sync.WaitGroup) {
 }
 
 // GetError return error
-func (p *RedisPublisher) GetError() error {
+func (p *StatusPublisher) GetError() error {
 	return p.error
 }
 
 // Run starts the publisher
-func (p *RedisPublisher) run(wg *sync.WaitGroup, mq messaging.IMessageBus) {
+func (p *StatusPublisher) run(wg *sync.WaitGroup, mq messaging.IMessageBus) {
 
 	rand.NewSource(time.Now().UnixNano())
 
@@ -75,8 +75,8 @@ func (p *RedisPublisher) run(wg *sync.WaitGroup, mq messaging.IMessageBus) {
 		case _ = <-time.Tick(p.interval):
 			cpu := rand.Intn(100)
 			ram := rand.Intn(100)
-			message := newStatusMessage(p.queue, NewStatus1(cpu, ram).(*Status))
-			if err := mq.Push(message); err != nil {
+			message := newStatusMessage(p.topic, NewStatus1(cpu, ram).(*Status))
+			if err := mq.Publish(message); err != nil {
 				break
 			}
 		case <-after:

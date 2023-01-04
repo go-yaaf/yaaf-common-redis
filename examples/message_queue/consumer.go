@@ -2,8 +2,8 @@ package main
 
 import (
 	_ "encoding/json"
-	"fmt"
 	cr "github.com/go-yaaf/yaaf-common-redis/redis"
+	"github.com/go-yaaf/yaaf-common/logger"
 	"github.com/go-yaaf/yaaf-common/messaging"
 	_ "github.com/go-yaaf/yaaf-common/messaging"
 	"math/rand"
@@ -53,20 +53,23 @@ func (p *RedisConsumer) GetError() error {
 // Run starts the publisher
 func (p *RedisConsumer) run(wg *sync.WaitGroup, mq messaging.IMessageBus) {
 
-	if wg != nil {
-		defer wg.Done()
-	}
+	//if wg != nil {
+	//	defer wg.Done()
+	//}
 
 	rand.NewSource(time.Now().UnixNano())
 
 	// Run consumer until no messages are in the queue
 	for {
 		if msg, err := mq.Pop(NewStatusMessage, time.Minute, p.queue); err != nil {
-			fmt.Println("Error pop message:", err.Error())
+			logger.Error("Error pop message: %s", err.Error())
+			if wg != nil {
+				wg.Done()
+			}
 			return
 		} else {
 			sm := msg.(*StatusMessage)
-			fmt.Println(p.name, sm.MsgPayload.(*Status).NAME())
+			logger.Info("[%s] %s", p.name, sm.Status.NAME())
 
 			// simulate message processing time
 			ms := rand.Intn(500)

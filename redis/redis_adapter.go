@@ -1,8 +1,6 @@
-// Copyright (c) 2022. Motty Cohen
-
-// Package facilities
-//
 // Redis based implementation of IDataCache interface
+//
+
 package facilities
 
 import (
@@ -90,9 +88,11 @@ func (r *RedisAdapter) Ping(retries uint, intervalInSeconds uint) error {
 }
 
 // Close cache and free resources
-func (r *RedisAdapter) Close() {
+func (r *RedisAdapter) Close() error {
 	if r.rc != nil {
-		r.rc.Close()
+		return r.rc.Close()
+	} else {
+		return nil
 	}
 }
 

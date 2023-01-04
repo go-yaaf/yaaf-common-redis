@@ -9,20 +9,11 @@ A message is processed *only once*, it is picked up by a subscriber and removed 
 
 ```mermaid
 flowchart LR
-   p1(Publisher 1) --> q1[(water)]
-   p2(Publisher 2) --> q1[(water)]
-   q1[(water)] --> c1(Consumer 1)
-   q1[(water)] --> c2(Consumer 2)
+   p1(Publisher 1) --> q1[(water queue)]
+   p2(Publisher 2) --> q1[(water queue)]
+   q1[(water queue)] --> c1(Consumer 1)
+   q1[(water queue)] --> c2(Consumer 2)
 ```
-
-```mermaid
-graph LR
-A[Publisher 1] -->B[(Queue)]
-    B --> C{Decision}
-    C -->|One| D[Result one]
-    C -->|Two| E[Result two]
-```
-
 
 To run this example:
 

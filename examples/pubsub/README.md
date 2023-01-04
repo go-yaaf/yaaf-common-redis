@@ -12,15 +12,12 @@ In this example we will create a subscriber sending status messages and two subs
 * one subscriber prints the values
 * second subscriber generate aggregated values per time window
 
-
 ```mermaid
-graph LR
-A[Publisher 1] -->B[(Topic)]
-    B --> C{Decision}
-    C -->|One| D[Result one]
-    C -->|Two| E[Result two]
+flowchart LR
+   p1(Publisher) --> q1[[status topic]]
+   q1[[status topic]] --> c1(Status Logger)
+   q1[[status topic]] --> c2(Status Aggregator)
 ```
-
 
 To run this example:
 

@@ -2,11 +2,9 @@ module github.com/go-yaaf/yaaf-common-redis/examples/pubsub
 
 go 1.19
 
-replace github.com/go-yaaf/yaaf-common-redis => ../..
-
 require (
 	github.com/go-yaaf/yaaf-common v1.2.8
-	github.com/go-yaaf/yaaf-common-redis v0.0.0-00010101000000-000000000000
+	github.com/go-yaaf/yaaf-common-redis v1.2.1
 )
 
 require (

@@ -5,7 +5,7 @@ package test
 
 import (
 	"fmt"
-	facilities "github.com/go-yaaf/yaaf-common-redis/redis"
+	"github.com/go-yaaf/yaaf-common-redis/redis"
 	"github.com/go-yaaf/yaaf-common/database"
 	"github.com/go-yaaf/yaaf-common/utils"
 	"github.com/stretchr/testify/assert"

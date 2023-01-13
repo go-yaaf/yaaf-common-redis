@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/go-yaaf/yaaf-common v1.2.8
-	github.com/go-yaaf/yaaf-common-redis v1.2.1
+	github.com/go-yaaf/yaaf-common-redis v1.2.3
 )
 
 require (

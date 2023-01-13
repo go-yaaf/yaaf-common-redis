@@ -6,7 +6,7 @@ package test
 
 import (
 	"fmt"
-	facilities "github.com/go-yaaf/yaaf-common-redis/redis"
+	"github.com/go-yaaf/yaaf-common-redis/redis"
 	"github.com/go-yaaf/yaaf-common/entity"
 	"github.com/go-yaaf/yaaf-common/messaging"
 	"github.com/go-yaaf/yaaf-common/utils"

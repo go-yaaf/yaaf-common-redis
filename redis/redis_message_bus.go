@@ -4,6 +4,7 @@
 package facilities
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/go-redis/redis/v8"
 	"github.com/go-yaaf/yaaf-common/logger"
@@ -19,7 +20,7 @@ import (
 // Publish messages to a channel (topic)
 func (r *RedisAdapter) Publish(messages ...IMessage) error {
 	for _, message := range messages {
-		if bytes, err := r.messageToRaw(message); err != nil {
+		if bytes, err := messageToRaw(message); err != nil {
 			return err
 		} else {
 			if res := r.rc.Publish(r.ctx, message.Topic(), bytes); res.Err() != nil {
@@ -31,7 +32,7 @@ func (r *RedisAdapter) Publish(messages ...IMessage) error {
 }
 
 // Subscribe on topics
-func (r *RedisAdapter) Subscribe(factory MessageFactory, callback SubscriptionCallback, topics ...string) (subscriptionId string) {
+func (r *RedisAdapter) Subscribe(factory MessageFactory, callback SubscriptionCallback, subscriberName string, topics ...string) (string, error) {
 
 	topicArray := make([]string, 0)
 
@@ -52,13 +53,13 @@ func (r *RedisAdapter) Subscribe(factory MessageFactory, callback SubscriptionCa
 		ps = r.rc.Subscribe(r.ctx, topics...)
 	}
 
-	subscriptionId = uuid.New().String()
+	subscriptionId := uuid.New().String()
 
 	r.Lock()
 	defer r.Unlock()
 	r.subs[subscriptionId] = subscriber{ps: ps, topics: topicArray}
 	go r.subscriber(ps, callback, factory)
-	return subscriptionId
+	return subscriptionId, nil
 }
 
 // subscriber is a function running infinite loop to get messages from channel
@@ -103,7 +104,7 @@ func (r *RedisAdapter) Unsubscribe(subscriptionId string) bool {
 // Push Append one or multiple messages to a queue
 func (r *RedisAdapter) Push(messages ...IMessage) error {
 	for _, message := range messages {
-		if bytes, err := r.messageToRaw(message); err != nil {
+		if bytes, err := messageToRaw(message); err != nil {
 			return err
 		} else {
 			if er := r.rc.LPush(r.ctx, message.Topic(), bytes).Err(); er != nil {
@@ -130,7 +131,7 @@ func (r *RedisAdapter) Pop(factory MessageFactory, timeout time.Duration, queue 
 			if bytes, er := cmd.Bytes(); er != nil {
 				return nil, er
 			} else {
-				return r.rawToMessage(factory, bytes)
+				return rawToMessage(factory, bytes)
 			}
 		}
 	} else {
@@ -140,10 +141,37 @@ func (r *RedisAdapter) Pop(factory MessageFactory, timeout time.Duration, queue 
 			if result, err := cmd.Result(); err != nil {
 				return nil, err
 			} else {
-				return r.rawToMessage(factory, []byte(result[1]))
+				return rawToMessage(factory, []byte(result[1]))
 			}
 		}
 	}
+}
+
+// CreateProducer creates message producer for specific topic
+func (r *RedisAdapter) CreateProducer(topic string) (IMessageProducer, error) {
+	return &producer{
+		rc:    r.rc,
+		topic: topic,
+	}, nil
+}
+
+// endregion
+
+// region Producer actions ---------------------------------------------------------------------------------------------
+
+// Publish messages to a channel (topic)
+func (p *producer) Publish(messages ...IMessage) error {
+	for _, message := range messages {
+		if bytes, err := messageToRaw(message); err != nil {
+			return err
+		} else {
+			p.Publish()
+			if res := p.rc.Publish(context.Background(), message.Topic(), bytes); res.Err() != nil {
+				return res.Err()
+			}
+		}
+	}
+	return nil
 }
 
 // endregion

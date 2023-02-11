@@ -22,14 +22,14 @@ func (r *RedisAdapter) Get(factory EntityFactory, key string) (result Entity, er
 		if bytes, err = cmd.Bytes(); err != nil {
 			return nil, err
 		} else {
-			return r.rawToEntity(factory, bytes)
+			return rawToEntity(factory, bytes)
 		}
 	}
 }
 
 // Set value of key with optional expiration
 func (r *RedisAdapter) Set(key string, entity Entity, expiration ...time.Duration) error {
-	if bytes, err := r.entityToRaw(entity); err != nil {
+	if bytes, err := entityToRaw(entity); err != nil {
 		return err
 	} else {
 		if len(expiration) > 0 {
@@ -58,7 +58,7 @@ func (r *RedisAdapter) GetKeys(factory EntityFactory, keys ...string) ([]Entity,
 	} else {
 		entities := make([]Entity, 0)
 		for _, item := range list {
-			if entity, err := r.rawToEntity(factory, item.([]byte)); err == nil {
+			if entity, err := rawToEntity(factory, item.([]byte)); err == nil {
 				entities = append(entities, entity)
 			}
 		}
@@ -68,7 +68,7 @@ func (r *RedisAdapter) GetKeys(factory EntityFactory, keys ...string) ([]Entity,
 
 // Add Set the value of a key only if the key does not exist
 func (r *RedisAdapter) Add(key string, entity Entity, expiration time.Duration) (bool, error) {
-	if bytes, err := r.entityToRaw(entity); err != nil {
+	if bytes, err := entityToRaw(entity); err != nil {
 		return false, err
 	} else {
 		if cmd := r.rc.SetNX(r.ctx, key, bytes, expiration); cmd.Err() != nil {
@@ -124,7 +124,7 @@ func (r *RedisAdapter) HGet(factory EntityFactory, key, field string) (Entity, e
 		if bytes, err := cmd.Bytes(); err != nil {
 			return nil, err
 		} else {
-			return r.rawToEntity(factory, bytes)
+			return rawToEntity(factory, bytes)
 		}
 	}
 }
@@ -145,7 +145,7 @@ func (r *RedisAdapter) HGetAll(factory EntityFactory, key string) (map[string]En
 	} else {
 		result := make(map[string]Entity)
 		for k, str := range cmd.Val() {
-			if entity, er := r.rawToEntity(factory, []byte(str)); er == nil {
+			if entity, er := rawToEntity(factory, []byte(str)); er == nil {
 				result[k] = entity
 			}
 		}
@@ -155,7 +155,7 @@ func (r *RedisAdapter) HGetAll(factory EntityFactory, key string) (map[string]En
 
 // HSet Set the value of a hash field
 func (r *RedisAdapter) HSet(key, field string, entity Entity) error {
-	if bytes, err := r.entityToRaw(entity); err != nil {
+	if bytes, err := entityToRaw(entity); err != nil {
 		return err
 	} else {
 		return r.rc.HSet(r.ctx, key, field, bytes).Err()
@@ -169,7 +169,7 @@ func (r *RedisAdapter) HDel(key string, fields ...string) error {
 
 // HAdd sets the value of a key only if the key does not exist
 func (r *RedisAdapter) HAdd(key, field string, entity Entity) (bool, error) {
-	if bytes, err := r.entityToRaw(entity); err != nil {
+	if bytes, err := entityToRaw(entity); err != nil {
 		return false, err
 	} else {
 		if err = r.rc.HSetNX(r.ctx, key, field, bytes).Err(); err != nil {
@@ -219,7 +219,7 @@ func (r *RedisAdapter) RPop(factory EntityFactory, key string) (Entity, error) {
 		if bytes, err := cmd.Bytes(); err != nil {
 			return nil, err
 		} else {
-			return r.rawToEntity(factory, bytes)
+			return rawToEntity(factory, bytes)
 		}
 	}
 }
@@ -232,7 +232,7 @@ func (r *RedisAdapter) LPop(factory EntityFactory, key string) (entity Entity, e
 		if bytes, er := cmd.Bytes(); er != nil {
 			return nil, er
 		} else {
-			return r.rawToEntity(factory, bytes)
+			return rawToEntity(factory, bytes)
 		}
 	}
 }
@@ -246,7 +246,7 @@ func (r *RedisAdapter) BRPop(factory EntityFactory, timeout time.Duration, keys 
 			return "", nil, err
 		} else {
 			key = result[0]
-			entity, err = r.rawToEntity(factory, []byte(result[1]))
+			entity, err = rawToEntity(factory, []byte(result[1]))
 			return
 		}
 	}
@@ -261,7 +261,7 @@ func (r *RedisAdapter) BLPop(factory EntityFactory, timeout time.Duration, keys 
 			return "", nil, err
 		} else {
 			key = result[0]
-			entity, err = r.rawToEntity(factory, []byte(result[1]))
+			entity, err = rawToEntity(factory, []byte(result[1]))
 			return
 		}
 	}
@@ -274,7 +274,7 @@ func (r *RedisAdapter) LRange(factory EntityFactory, key string, start, stop int
 	} else {
 		result := make([]Entity, 0)
 		for _, str := range list {
-			if entity, err := r.rawToEntity(factory, []byte(str)); err == nil {
+			if entity, err := rawToEntity(factory, []byte(str)); err == nil {
 				result = append(result, entity)
 			}
 		}

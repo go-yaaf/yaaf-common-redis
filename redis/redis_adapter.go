@@ -98,10 +98,24 @@ func (r *RedisAdapter) Close() error {
 
 // endregion
 
+// region Producer methods  --------------------------------------------------------------------------------------------
+
+type producer struct {
+	rc    *redis.Client
+	topic string
+}
+
+// Close cache and free resources
+func (p *producer) Close() error {
+	return nil
+}
+
+// endregion
+
 // region PRIVATE SECTION ----------------------------------------------------------------------------------------------
 
 // convert raw data to entity
-func (r *RedisAdapter) rawToEntity(factory EntityFactory, bytes []byte) (Entity, error) {
+func rawToEntity(factory EntityFactory, bytes []byte) (Entity, error) {
 	entity := factory()
 	if err := json.Unmarshal(bytes, &entity); err != nil {
 		return nil, err
@@ -111,12 +125,12 @@ func (r *RedisAdapter) rawToEntity(factory EntityFactory, bytes []byte) (Entity,
 }
 
 // convert entity to raw data
-func (r *RedisAdapter) entityToRaw(entity Entity) ([]byte, error) {
+func entityToRaw(entity Entity) ([]byte, error) {
 	return json.Marshal(entity)
 }
 
 // convert raw data to message
-func (r *RedisAdapter) rawToMessage(factory MessageFactory, bytes []byte) (IMessage, error) {
+func rawToMessage(factory MessageFactory, bytes []byte) (IMessage, error) {
 	message := factory()
 	if err := json.Unmarshal(bytes, &message); err != nil {
 		return nil, err
@@ -126,7 +140,7 @@ func (r *RedisAdapter) rawToMessage(factory MessageFactory, bytes []byte) (IMess
 }
 
 // convert message to raw data
-func (r *RedisAdapter) messageToRaw(message IMessage) ([]byte, error) {
+func messageToRaw(message IMessage) ([]byte, error) {
 	return json.Marshal(message)
 }
 

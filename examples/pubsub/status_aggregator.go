@@ -73,7 +73,7 @@ func (p *StatusAggregator) Start(wg *sync.WaitGroup) {
 }
 
 // This consumer aggregate average data for the provided time window
-func (p *StatusAggregator) processMessage(message messaging.IMessage) {
+func (p *StatusAggregator) processMessage(message messaging.IMessage) bool {
 	p.locker.Lock()
 	sm := message.(*StatusMessage)
 
@@ -93,6 +93,7 @@ func (p *StatusAggregator) processMessage(message messaging.IMessage) {
 		p.status.UpdatedOn = sm.Status.CreatedOn
 	}
 	p.locker.Unlock()
+	return true
 }
 
 // Send aggregated status to the log

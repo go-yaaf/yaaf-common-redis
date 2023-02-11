@@ -46,7 +46,8 @@ func (p *StatusLogger) GetError() error {
 }
 
 // This consumer just print the message to the console
-func (p *StatusLogger) processMessage(message messaging.IMessage) {
+func (p *StatusLogger) processMessage(message messaging.IMessage) bool {
 	sm := message.(*StatusMessage)
 	logger.Debug("[%s] %s", p.name, sm.Status.NAME())
+	return false
 }

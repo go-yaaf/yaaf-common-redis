@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"os"
 	"testing"
 	"time"
 )
@@ -30,9 +29,7 @@ type RedisCacheTestSuite struct {
 }
 
 func TestRedisCacheTestSuite(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping testing in CI environment")
-	}
+	skipCI(t)
 	suite.Run(t, new(RedisCacheTestSuite))
 }
 

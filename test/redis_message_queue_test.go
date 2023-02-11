@@ -12,7 +12,6 @@ import (
 	"github.com/go-yaaf/yaaf-common/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"os"
 	"testing"
 	"time"
 )
@@ -25,9 +24,7 @@ type RedisQueueTestSuite struct {
 }
 
 func TestRedisQueueSuite(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping testing in CI environment")
-	}
+	skipCI(t)
 	suite.Run(t, new(RedisQueueTestSuite))
 }
 

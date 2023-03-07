@@ -38,7 +38,19 @@ func (r *RedisAdapter) Set(key string, entity Entity, expiration ...time.Duratio
 			return r.rc.Set(r.ctx, key, bytes, 0).Err()
 		}
 	}
+}
 
+// SetNX Set value of key only if it is not exist with optional expiration, return false if the key exists
+func (r *RedisAdapter) SetNX(key string, entity Entity, expiration ...time.Duration) (bool, error) {
+	if bytes, err := entityToRaw(entity); err != nil {
+		return false, err
+	} else {
+		var exp time.Duration = 0
+		if len(expiration) > 0 {
+			exp = expiration[0]
+		}
+		return r.rc.SetNX(r.ctx, key, bytes, exp).Result()
+	}
 }
 
 // Del Delete keys
@@ -159,6 +171,15 @@ func (r *RedisAdapter) HSet(key, field string, entity Entity) error {
 		return err
 	} else {
 		return r.rc.HSet(r.ctx, key, field, bytes).Err()
+	}
+}
+
+// HSetNX Set value of key only if it is not exist with optional expiration, return false if the key exists
+func (r *RedisAdapter) HSetNX(key string, field string, entity Entity) (bool, error) {
+	if bytes, err := entityToRaw(entity); err != nil {
+		return false, err
+	} else {
+		return r.rc.HSetNX(r.ctx, key, field, bytes).Result()
 	}
 }
 

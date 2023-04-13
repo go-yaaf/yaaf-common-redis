@@ -98,20 +98,6 @@ func (r *RedisAdapter) Close() error {
 
 // endregion
 
-// region Producer methods  --------------------------------------------------------------------------------------------
-
-type producer struct {
-	rc    *redis.Client
-	topic string
-}
-
-// Close cache and free resources
-func (p *producer) Close() error {
-	return nil
-}
-
-// endregion
-
 // region PRIVATE SECTION ----------------------------------------------------------------------------------------------
 
 // convert raw data to entity

@@ -32,7 +32,7 @@ func (p *HeroSubscriber) Topic(topic string) *HeroSubscriber {
 
 // Start the publisher
 func (p *HeroSubscriber) Start() {
-	if sub, err := p.messageBus.Subscribe(NewHeroMessage, p.processMessage, "hero_subscriber", p.topic); err != nil {
+	if sub, err := p.messageBus.Subscribe("hero_subscriber", NewHeroMessage, p.processMessage, p.topic); err != nil {
 		logger.Error("could not subscribe to topic: %s: %s", p.topic, err.Error())
 	} else {
 		logger.Info("subscribe to topic: %s: %s", p.topic, sub)

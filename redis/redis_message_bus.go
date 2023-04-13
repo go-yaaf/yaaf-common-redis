@@ -6,6 +6,7 @@ package facilities
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/go-redis/redis/v8"
 	"github.com/go-yaaf/yaaf-common/logger"
 	"github.com/google/uuid"
@@ -32,7 +33,7 @@ func (r *RedisAdapter) Publish(messages ...IMessage) error {
 }
 
 // Subscribe on topics
-func (r *RedisAdapter) Subscribe(factory MessageFactory, callback SubscriptionCallback, subscriberName string, topics ...string) (string, error) {
+func (r *RedisAdapter) Subscribe(subscriberName string, factory MessageFactory, callback SubscriptionCallback, topics ...string) (string, error) {
 
 	topicArray := make([]string, 0)
 
@@ -155,9 +156,49 @@ func (r *RedisAdapter) CreateProducer(topic string) (IMessageProducer, error) {
 	}, nil
 }
 
+// CreateConsumer creates message consumer for a specific topic
+func (r *RedisAdapter) CreateConsumer(subscription string, mf MessageFactory, topics ...string) (IMessageConsumer, error) {
+
+	topicArray := make([]string, 0)
+
+	// Check if topics include * - in this case it should be patterned subscribe
+	isPattern := false
+	for _, t := range topics {
+		if strings.Contains(t, "*") {
+			isPattern = true
+		}
+		topicArray = append(topicArray, t)
+	}
+
+	var ps *redis.PubSub
+
+	if isPattern {
+		ps = r.rc.PSubscribe(r.ctx, topics...)
+	} else {
+		ps = r.rc.Subscribe(r.ctx, topics...)
+	}
+
+	return &consumer{
+		ps:        ps,
+		factory:   mf,
+		isPattern: isPattern,
+		topics:    topicArray,
+	}, nil
+}
+
 // endregion
 
 // region Producer actions ---------------------------------------------------------------------------------------------
+
+type producer struct {
+	rc    *redis.Client
+	topic string
+}
+
+// Close cache and free resources
+func (p *producer) Close() error {
+	return nil
+}
 
 // Publish messages to a channel (topic)
 func (p *producer) Publish(messages ...IMessage) error {
@@ -172,6 +213,69 @@ func (p *producer) Publish(messages ...IMessage) error {
 		}
 	}
 	return nil
+}
+
+// endregion
+
+// region Consumer methods  --------------------------------------------------------------------------------------------
+
+type consumer struct {
+	ps        *redis.PubSub
+	factory   MessageFactory
+	isPattern bool
+	topics    []string
+}
+
+// Close cache and free resources
+func (p *consumer) Close() error {
+
+	if p.ps == nil {
+		return nil
+	}
+
+	if p.isPattern {
+		return p.ps.PUnsubscribe(context.Background(), p.topics...)
+	} else {
+		return p.ps.Unsubscribe(context.Background(), p.topics...)
+	}
+}
+
+// Read message from topic, blocks until a new message arrive or until timeout expires
+// Use 0 instead of time.Duration for unlimited time
+// The standard way to use Read is by using infinite loop:
+//
+//	for {
+//		if msg, err := consumer.Read(time.Second * 5); err != nil {
+//			// Handle error
+//		} else {
+//			// Process message in a dedicated go routine
+//			go processTisMessage(msg)
+//		}
+//	}
+func (p *consumer) Read(timeout time.Duration) (IMessage, error) {
+
+	if timeout == 0 {
+		timeout = time.Hour * 24
+	}
+
+LOOP:
+	for {
+		select {
+		case m := <-p.ps.Channel():
+			if m == nil {
+				break LOOP
+			}
+			message := p.factory()
+			if err := json.Unmarshal([]byte(m.Payload), &message); err != nil {
+				return nil, err
+			} else {
+				return message, nil
+			}
+		case <-time.After(timeout):
+			return nil, fmt.Errorf("read timeout")
+		}
+	}
+	return nil, fmt.Errorf("read timeout")
 }
 
 // endregion

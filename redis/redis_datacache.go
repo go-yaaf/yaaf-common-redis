@@ -4,53 +4,73 @@
 package facilities
 
 import (
+	"fmt"
 	"time"
 
+	. "github.com/go-yaaf/yaaf-common/database"
 	. "github.com/go-yaaf/yaaf-common/entity"
 )
 
 // region Key actions ----------------------------------------------------------------------------------------------
 
-// Get the value of a key
-// TODO: add expiration time.Duration parameter
-func (r *RedisAdapter) Get(factory EntityFactory, key string) (result Entity, err error) {
+// GetRaw gets the value of a key in a byte array format
+func (r *RedisAdapter) GetRaw(key string) ([]byte, error) {
 	var bytes []byte
 	cmd := r.rc.Get(r.ctx, key)
-	if err = cmd.Err(); err != nil {
+	if err := cmd.Err(); err != nil {
 		return nil, err
 	} else {
 		if bytes, err = cmd.Bytes(); err != nil {
 			return nil, err
 		} else {
-			return rawToEntity(factory, bytes)
+			return bytes, nil
 		}
 	}
 }
 
-// Set value of key with optional expiration
+// Get gets the value of a key as entity
+func (r *RedisAdapter) Get(factory EntityFactory, key string) (Entity, error) {
+	if bytes, err := r.GetRaw(key); err != nil {
+		return nil, err
+	} else {
+		return rawToEntity(factory, bytes)
+	}
+}
+
+// SetRaw sets value of key in a byte array format
+func (r *RedisAdapter) SetRaw(key string, bytes []byte, expiration ...time.Duration) error {
+	if len(expiration) > 0 {
+		return r.rc.Set(r.ctx, key, bytes, expiration[0]).Err()
+	} else {
+		return r.rc.Set(r.ctx, key, bytes, 0).Err()
+	}
+}
+
+// Set sets value of key with optional expiration
 func (r *RedisAdapter) Set(key string, entity Entity, expiration ...time.Duration) error {
 	if bytes, err := entityToRaw(entity); err != nil {
 		return err
 	} else {
-		if len(expiration) > 0 {
-			return r.rc.Set(r.ctx, key, bytes, expiration[0]).Err()
-		} else {
-			return r.rc.Set(r.ctx, key, bytes, 0).Err()
-		}
+		return r.SetRaw(key, bytes, expiration...)
 	}
 }
 
-// SetNX Set value of key only if it is not exist with optional expiration, return false if the key exists
+// SetNX sets value of key only if it is not exist with optional expiration, return false if the key exists
 func (r *RedisAdapter) SetNX(key string, entity Entity, expiration ...time.Duration) (bool, error) {
 	if bytes, err := entityToRaw(entity); err != nil {
 		return false, err
 	} else {
-		var exp time.Duration = 0
-		if len(expiration) > 0 {
-			exp = expiration[0]
-		}
-		return r.rc.SetNX(r.ctx, key, bytes, exp).Result()
+		return r.SetRawNX(key, bytes, expiration...)
 	}
+}
+
+// SetRawNX sets bytes value of key only if it is not exist with optional expiration, return false if the key exists
+func (r *RedisAdapter) SetRawNX(key string, bytes []byte, expiration ...time.Duration) (bool, error) {
+	var exp time.Duration = 0
+	if len(expiration) > 0 {
+		exp = expiration[0]
+	}
+	return r.rc.SetNX(r.ctx, key, bytes, exp).Result()
 }
 
 // Del Delete keys
@@ -78,20 +98,40 @@ func (r *RedisAdapter) GetKeys(factory EntityFactory, keys ...string) ([]Entity,
 	}
 }
 
+// GetRawKeys Get the value of all the given keys
+func (r *RedisAdapter) GetRawKeys(keys ...string) ([]Tuple[string, []byte], error) {
+	cmd := r.rc.MGet(r.ctx, keys...)
+	if cmd.Err() != nil {
+		return nil, cmd.Err()
+	}
+
+	if list, err := cmd.Result(); err != nil {
+		return nil, err
+	} else {
+		tuples := make([]Tuple[string, []byte], 0)
+		for i, item := range list {
+			tuple := Tuple[string, []byte]{Key: fmt.Sprintf("%d", i), Value: item.([]byte)}
+			tuples = append(tuples, tuple)
+		}
+		return tuples, nil
+	}
+}
+
+// AddRaw Set the byte array value of a key only if the key does not exist
+func (r *RedisAdapter) AddRaw(key string, bytes []byte, expiration time.Duration) (bool, error) {
+	if cmd := r.rc.SetNX(r.ctx, key, bytes, expiration); cmd.Err() != nil {
+		return false, cmd.Err()
+	} else {
+		return cmd.Result()
+	}
+}
+
 // Add Set the value of a key only if the key does not exist
 func (r *RedisAdapter) Add(key string, entity Entity, expiration time.Duration) (bool, error) {
 	if bytes, err := entityToRaw(entity); err != nil {
 		return false, err
 	} else {
-		if cmd := r.rc.SetNX(r.ctx, key, bytes, expiration); cmd.Err() != nil {
-			return false, err
-		} else {
-			if _, er := cmd.Result(); er != nil {
-				return false, er
-			} else {
-				return true, nil
-			}
-		}
+		return r.AddRaw(key, bytes, expiration)
 	}
 }
 
@@ -129,6 +169,15 @@ func (r *RedisAdapter) Exists(key string) (result bool, err error) {
 
 // HGet Get the value of a hash field
 func (r *RedisAdapter) HGet(factory EntityFactory, key, field string) (Entity, error) {
+	if bytes, err := r.HGetRaw(key, field); err != nil {
+		return nil, err
+	} else {
+		return rawToEntity(factory, bytes)
+	}
+}
+
+// HGetRaw gets the rae value of a hash field
+func (r *RedisAdapter) HGetRaw(key, field string) ([]byte, error) {
 	cmd := r.rc.HGet(r.ctx, key, field)
 	if cmd.Err() != nil {
 		return nil, cmd.Err()
@@ -136,7 +185,7 @@ func (r *RedisAdapter) HGet(factory EntityFactory, key, field string) (Entity, e
 		if bytes, err := cmd.Bytes(); err != nil {
 			return nil, err
 		} else {
-			return rawToEntity(factory, bytes)
+			return bytes, nil
 		}
 	}
 }
@@ -165,6 +214,19 @@ func (r *RedisAdapter) HGetAll(factory EntityFactory, key string) (map[string]En
 	}
 }
 
+// HGetRawAll gets all the fields and raw values in a hash
+func (r *RedisAdapter) HGetRawAll(key string) (map[string][]byte, error) {
+	if cmd := r.rc.HGetAll(r.ctx, key); cmd.Err() != nil {
+		return nil, cmd.Err()
+	} else {
+		result := make(map[string][]byte)
+		for k, str := range cmd.Val() {
+			result[k] = []byte(str)
+		}
+		return result, nil
+	}
+}
+
 // HSet Set the value of a hash field
 func (r *RedisAdapter) HSet(key, field string, entity Entity) error {
 	if bytes, err := entityToRaw(entity); err != nil {
@@ -174,6 +236,11 @@ func (r *RedisAdapter) HSet(key, field string, entity Entity) error {
 	}
 }
 
+// HSetRaw sets the raw value of a hash field
+func (r *RedisAdapter) HSetRaw(key, field string, bytes []byte) error {
+	return r.rc.HSet(r.ctx, key, field, bytes).Err()
+}
+
 // HSetNX Set value of key only if it is not exist with optional expiration, return false if the key exists
 func (r *RedisAdapter) HSetNX(key string, field string, entity Entity) (bool, error) {
 	if bytes, err := entityToRaw(entity); err != nil {
@@ -181,6 +248,11 @@ func (r *RedisAdapter) HSetNX(key string, field string, entity Entity) (bool, er
 	} else {
 		return r.rc.HSetNX(r.ctx, key, field, bytes).Result()
 	}
+}
+
+// HSetRawNX sets the raw value of key only if it is not exist with optional expiration, return false if the key exists
+func (r *RedisAdapter) HSetRawNX(key string, field string, bytes []byte) (bool, error) {
+	return r.rc.HSetNX(r.ctx, key, field, bytes).Result()
 }
 
 // HDel Delete one or more hash fields
@@ -198,6 +270,15 @@ func (r *RedisAdapter) HAdd(key, field string, entity Entity) (bool, error) {
 		} else {
 			return true, nil
 		}
+	}
+}
+
+// HAddRaw sets the raw value of a key only if the key does not exist
+func (r *RedisAdapter) HAddRaw(key, field string, bytes []byte) (bool, error) {
+	if err := r.rc.HSetNX(r.ctx, key, field, bytes).Err(); err != nil {
+		return false, err
+	} else {
+		return true, nil
 	}
 }
 
@@ -306,6 +387,26 @@ func (r *RedisAdapter) LRange(factory EntityFactory, key string, start, stop int
 // LLen Get the length of a list
 func (r *RedisAdapter) LLen(key string) (result int64) {
 	return r.rc.LLen(r.ctx, key).Val()
+}
+
+// endregion
+
+// region Distribute Locker actions ------------------------------------------------------------------------------------
+
+// ObtainLocker tries to obtain a new lock using a key with the given TTL
+func (r *RedisAdapter) ObtainLocker(key string, ttl time.Duration) (ILocker, error) {
+	// Create a random token
+	token := ID()
+
+	if ok, err := r.SetRawNX(key, []byte(token), ttl); err != nil {
+		return nil, err
+	} else {
+		if ok {
+			return &Locker{rc: r.rc, key: key, token: token}, nil
+		} else {
+			return nil, fmt.Errorf("locker key already exists")
+		}
+	}
 }
 
 // endregion

@@ -3,8 +3,8 @@ module github.com/go-yaaf/yaaf-common-redis/examples/pubsub
 go 1.20
 
 require (
-	github.com/go-yaaf/yaaf-common v1.2.10
-	github.com/go-yaaf/yaaf-common-redis v1.2.5
+	github.com/go-yaaf/yaaf-common v1.2.55
+	github.com/go-yaaf/yaaf-common-redis v1.2.18
 )
 
 require (

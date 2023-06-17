@@ -35,7 +35,7 @@ func (p *StatusLogger) Start() {
 	if mq, err := cr.NewRedisMessageBus(p.uri); err != nil {
 		p.error = err
 	} else {
-		mq.Subscribe(NewStatusMessage, p.processMessage, p.topic)
+		mq.Subscribe("subscriber", NewStatusMessage, p.processMessage, p.topic)
 	}
 }
 

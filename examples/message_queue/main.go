@@ -1,9 +1,7 @@
 package main
 
 import (
-	_ "encoding/json"
 	"github.com/go-yaaf/yaaf-common/logger"
-	_ "github.com/go-yaaf/yaaf-common/messaging"
 	"github.com/go-yaaf/yaaf-common/utils"
 	"sync"
 	"time"

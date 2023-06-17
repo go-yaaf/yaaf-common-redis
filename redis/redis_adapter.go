@@ -5,7 +5,6 @@ package facilities
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -103,7 +102,7 @@ func (r *RedisAdapter) Close() error {
 // convert raw data to entity
 func rawToEntity(factory EntityFactory, bytes []byte) (Entity, error) {
 	entity := factory()
-	if err := json.Unmarshal(bytes, &entity); err != nil {
+	if err := Unmarshal(bytes, &entity); err != nil {
 		return nil, err
 	} else {
 		return entity, nil
@@ -112,13 +111,13 @@ func rawToEntity(factory EntityFactory, bytes []byte) (Entity, error) {
 
 // convert entity to raw data
 func entityToRaw(entity Entity) ([]byte, error) {
-	return json.Marshal(entity)
+	return Marshal(entity)
 }
 
 // convert raw data to message
 func rawToMessage(factory MessageFactory, bytes []byte) (IMessage, error) {
 	message := factory()
-	if err := json.Unmarshal(bytes, &message); err != nil {
+	if err := Unmarshal(bytes, &message); err != nil {
 		return nil, err
 	} else {
 		return message, nil
@@ -127,7 +126,7 @@ func rawToMessage(factory MessageFactory, bytes []byte) (IMessage, error) {
 
 // convert message to raw data
 func messageToRaw(message IMessage) ([]byte, error) {
-	return json.Marshal(message)
+	return Marshal(message)
 }
 
 // endregion

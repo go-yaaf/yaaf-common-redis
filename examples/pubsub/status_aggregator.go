@@ -1,7 +1,6 @@
 package main
 
 import (
-	_ "encoding/json"
 	cr "github.com/go-yaaf/yaaf-common-redis/redis"
 	"github.com/go-yaaf/yaaf-common/logger"
 	"github.com/go-yaaf/yaaf-common/messaging"

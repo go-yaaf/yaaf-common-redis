@@ -5,14 +5,15 @@ package facilities
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/go-redis/redis/v8"
-	"github.com/go-yaaf/yaaf-common/logger"
-	"github.com/google/uuid"
 	"strings"
 	"time"
 
+	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
+
+	. "github.com/go-yaaf/yaaf-common/entity"
+	"github.com/go-yaaf/yaaf-common/logger"
 	. "github.com/go-yaaf/yaaf-common/messaging"
 )
 
@@ -74,7 +75,7 @@ LOOP:
 				break LOOP
 			}
 			message := factory()
-			if err := json.Unmarshal([]byte(m.Payload), &message); err != nil {
+			if err := Unmarshal([]byte(m.Payload), &message); err != nil {
 				continue
 			} else {
 				go callback(message)
@@ -266,7 +267,7 @@ LOOP:
 				break LOOP
 			}
 			message := p.factory()
-			if err := json.Unmarshal([]byte(m.Payload), &message); err != nil {
+			if err := Unmarshal([]byte(m.Payload), &message); err != nil {
 				return nil, err
 			} else {
 				return message, nil

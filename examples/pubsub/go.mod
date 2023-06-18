@@ -3,7 +3,7 @@ module github.com/go-yaaf/yaaf-common-redis/examples/pubsub
 go 1.20
 
 require (
-	github.com/go-yaaf/yaaf-common v1.2.55
+	github.com/go-yaaf/yaaf-common v1.2.56
 	github.com/go-yaaf/yaaf-common-redis v1.2.18
 )
 
@@ -15,6 +15,9 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/jaevor/go-nanoid v1.2.0 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect

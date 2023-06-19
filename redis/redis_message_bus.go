@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/google/uuid"
-
 	. "github.com/go-yaaf/yaaf-common/entity"
 	"github.com/go-yaaf/yaaf-common/logger"
 	. "github.com/go-yaaf/yaaf-common/messaging"
@@ -55,7 +53,7 @@ func (r *RedisAdapter) Subscribe(subscriberName string, factory MessageFactory, 
 		ps = r.rc.Subscribe(r.ctx, topics...)
 	}
 
-	subscriptionId := uuid.New().String()
+	subscriptionId := NanoID()
 
 	r.Lock()
 	defer r.Unlock()

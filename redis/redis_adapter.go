@@ -31,6 +31,7 @@ type RedisAdapter struct {
 
 	tmp   []byte
 	tmpMu sync.Mutex
+	uri   string
 }
 
 // NewRedisDataCache factory method for Redis IDataCache implementation
@@ -46,6 +47,7 @@ func NewRedisDataCache(URI string) (dbs database.IDataCache, err error) {
 			rc:   redis.NewClient(options),
 			subs: make(map[string]subscriber),
 			ctx:  context.Background(),
+			uri:  URI,
 		}, nil
 
 	}
@@ -93,6 +95,16 @@ func (r *RedisAdapter) Close() error {
 	} else {
 		return nil
 	}
+}
+
+// CloneCache creates a clone of this instance
+func (r *RedisAdapter) CloneCache() (dbs database.IDataCache, err error) {
+	return NewRedisDataCache(r.uri)
+}
+
+// Clone creates a clone of this instance
+func (r *RedisAdapter) Clone() (dbs IMessageBus, err error) {
+	return NewRedisMessageBus(r.uri)
 }
 
 // endregion

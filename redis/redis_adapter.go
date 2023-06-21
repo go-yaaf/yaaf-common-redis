@@ -97,13 +97,13 @@ func (r *RedisAdapter) Close() error {
 	}
 }
 
-// CloneCache creates a clone of this instance
-func (r *RedisAdapter) CloneCache() (dbs database.IDataCache, err error) {
+// CloneDataCache creates a clone of this instance
+func (r *RedisAdapter) CloneDataCache() (dbs database.IDataCache, err error) {
 	return NewRedisDataCache(r.uri)
 }
 
-// Clone creates a clone of this instance
-func (r *RedisAdapter) Clone() (dbs IMessageBus, err error) {
+// CloneMessageBus creates a clone of this instance
+func (r *RedisAdapter) CloneMessageBus() (dbs IMessageBus, err error) {
 	return NewRedisMessageBus(r.uri)
 }
 

@@ -3,7 +3,7 @@ module github.com/go-yaaf/yaaf-common-redis/examples/message_queue
 go 1.20
 
 require (
-	github.com/go-yaaf/yaaf-common v1.2.57
+	github.com/go-yaaf/yaaf-common v1.2.62
 	github.com/go-yaaf/yaaf-common-redis v1.2.18
 )
 

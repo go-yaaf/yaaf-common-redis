@@ -5,6 +5,7 @@ package test
 import (
 	. "github.com/go-yaaf/yaaf-common/entity"
 	. "github.com/go-yaaf/yaaf-common/messaging"
+	"github.com/go-yaaf/yaaf-common/utils/binary"
 	"time"
 )
 
@@ -15,8 +16,34 @@ type Hero struct {
 	Name string `json:"name"` // Name
 }
 
-func (a Hero) TABLE() string { return "hero" }
-func (a Hero) NAME() string  { return a.Name }
+func (a *Hero) TABLE() string { return "hero" }
+func (a *Hero) NAME() string  { return a.Name }
+
+func (a *Hero) MarshalBinary() (data []byte, err error) {
+	w := binary.NewWriter()
+	w.String(a.Id).Timestamp(a.CreatedOn).Timestamp(a.UpdatedOn).Int(a.Key).String(a.Name)
+	return w.GetBytes(), nil
+}
+
+func (a *Hero) UnmarshalBinary(data []byte) (e error) {
+	r := binary.NewReader(data)
+	if a.Id, e = r.String(); e != nil {
+		return e
+	}
+	if a.CreatedOn, e = r.Timestamp(); e != nil {
+		return e
+	}
+	if a.UpdatedOn, e = r.Timestamp(); e != nil {
+		return e
+	}
+	if a.Key, e = r.Int(); e != nil {
+		return e
+	}
+	if a.Name, e = r.String(); e != nil {
+		return e
+	}
+	return nil
+}
 
 func NewHero() Entity {
 	return &Hero{}

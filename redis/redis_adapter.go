@@ -6,6 +6,7 @@ package facilities
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -15,6 +16,13 @@ import (
 	. "github.com/go-yaaf/yaaf-common/entity"
 	. "github.com/go-yaaf/yaaf-common/messaging"
 )
+
+var forceJsonMarshal bool
+
+func init() {
+	fjm := os.Getenv("FORCE_JSON_MARSHAL")
+	forceJsonMarshal = fjm == "true"
+}
 
 // region Data structure and methods  ----------------------------------------------------------------------------------
 
@@ -114,6 +122,7 @@ func (r *RedisAdapter) CloneMessageBus() (dbs IMessageBus, err error) {
 // convert raw data to entity
 func rawToEntity(factory EntityFactory, bytes []byte) (Entity, error) {
 	entity := factory()
+
 	if isJsonString(bytes) {
 		if err := Unmarshal(bytes, &entity); err != nil {
 			return nil, err
@@ -131,7 +140,11 @@ func rawToEntity(factory EntityFactory, bytes []byte) (Entity, error) {
 
 // convert entity to raw data
 func entityToRaw(entity Entity) ([]byte, error) {
-	return BinaryMarshal(entity)
+	if forceJsonMarshal {
+		return Marshal(entity)
+	} else {
+		return BinaryMarshal(entity)
+	}
 }
 
 // convert raw data to message
@@ -154,7 +167,11 @@ func rawToMessage(factory MessageFactory, bytes []byte) (IMessage, error) {
 
 // convert message to raw data
 func messageToRaw(message IMessage) ([]byte, error) {
-	return BinaryMarshal(message)
+	if forceJsonMarshal {
+		return Marshal(message)
+	} else {
+		return BinaryMarshal(message)
+	}
 }
 
 // Check if the byte array representing a JSON string

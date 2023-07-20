@@ -93,7 +93,7 @@ func (s *RedisQueueTestSuite) TestRedisMessageBus_PopWithTimeout() {
 	// Push message to queue_y after 10 seconds
 	go func() {
 		time.Sleep(time.Second * 5)
-		s.mq.Push(newHeroMessage("queue_x", &Hero{
+		_ = s.mq.Push(newHeroMessage("queue_x", &Hero{
 			BaseEntity: entity.BaseEntity{},
 			Key:        100,
 			Name:       "Delayed hero",

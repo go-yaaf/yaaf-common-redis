@@ -6,6 +6,8 @@ package facilities
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -38,18 +40,17 @@ type RedisAdapter struct {
 //
 // param: URI - represents the redis connection string in the format of: redis://user:password@host:port
 // return: IDataCache instance, error
-func NewRedisDataCache(URI string) (dbs database.IDataCache, err error) {
+func NewRedisDataCache(URI string) (dbs database.IDataCache, error error) {
 
-	if options, err := redis.ParseURL(URI); err != nil {
+	if redisClient, err := getRedisClient(URI); err != nil {
 		return nil, err
 	} else {
 		return &RedisAdapter{
-			rc:   redis.NewClient(options),
+			rc:   redisClient,
 			subs: make(map[string]subscriber),
 			ctx:  context.Background(),
 			uri:  URI,
 		}, nil
-
 	}
 }
 
@@ -57,13 +58,13 @@ func NewRedisDataCache(URI string) (dbs database.IDataCache, err error) {
 //
 // param: URI - represents the redis connection string in the format of: redis://user:password@host:port
 // return: IDataCache instance, error
-func NewRedisMessageBus(URI string) (mq IMessageBus, err error) {
+func NewRedisMessageBus(URI string) (mq IMessageBus, error error) {
 
-	if options, err := redis.ParseURL(URI); err != nil {
+	if redisClient, err := getRedisClient(URI); err != nil {
 		return nil, err
 	} else {
 		return &RedisAdapter{
-			rc:   redis.NewClient(options),
+			rc:   redisClient,
 			subs: make(map[string]subscriber),
 			ctx:  context.Background(),
 		}, nil
@@ -110,6 +111,26 @@ func (r *RedisAdapter) CloneMessageBus() (dbs IMessageBus, err error) {
 // endregion
 
 // region PRIVATE SECTION ----------------------------------------------------------------------------------------------
+
+// Get native redis client and provide client name
+func getRedisClient(URI string) (*redis.Client, error) {
+	if options, err := redis.ParseURL(URI); err != nil {
+		return nil, err
+	} else {
+		// Create Redis client and set client name
+		redisClient := redis.NewClient(options)
+		if redisClient == nil {
+			return nil, fmt.Errorf("can't create client")
+		} else {
+			clientName := fmt.Sprintf("_:%d", os.Getegid())
+			if path, er := os.Executable(); er == nil {
+				clientName = fmt.Sprintf("%s:%d", filepath.Base(path), os.Getegid())
+			}
+			_ = redisClient.Do(context.Background(), "CLIENT", "SETNAME", clientName)
+			return redisClient, nil
+		}
+	}
+}
 
 // convert raw data to entity
 func rawToEntity(factory EntityFactory, bytes []byte) (Entity, error) {

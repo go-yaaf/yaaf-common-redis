@@ -208,18 +208,13 @@ func (p *producer) Close() error {
 // Publish messages to a channel (topic)
 func (p *producer) Publish(messages ...IMessage) error {
 	for _, message := range messages {
-		if res := p.rc.Publish(context.Background(), message.Topic(), message); res.Err() != nil {
-			return res.Err()
-		}
-		/*
-			if bytes, err := messageToRaw(message); err != nil {
-				return err
-			} else {
-				if res := p.rc.Publish(context.Background(), message.Topic(), bytes); res.Err() != nil {
-					return res.Err()
-				}
+		if bytes, err := messageToRaw(message); err != nil {
+			return err
+		} else {
+			if res := p.rc.Publish(context.Background(), message.Topic(), bytes); res.Err() != nil {
+				return res.Err()
 			}
-		*/
+		}
 	}
 	return nil
 }

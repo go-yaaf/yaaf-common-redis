@@ -20,19 +20,13 @@ import (
 // Publish messages to a channel (topic)
 func (r *RedisAdapter) Publish(messages ...IMessage) error {
 	for _, message := range messages {
-		if res := r.rc.Publish(r.ctx, message.Topic(), message); res.Err() != nil {
-			return res.Err()
-		}
-
-		/*
-			if bytes, err := messageToRaw(message); err != nil {
-				return err
-			} else {
-				if res := r.rc.Publish(r.ctx, message.Topic(), bytes); res.Err() != nil {
-					return res.Err()
-				}
+		if bytes, err := messageToRaw(message); err != nil {
+			return err
+		} else {
+			if res := r.rc.Publish(r.ctx, message.Topic(), bytes); res.Err() != nil {
+				return res.Err()
 			}
-		*/
+		}
 	}
 	return nil
 }

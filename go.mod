@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/go-yaaf/yaaf-common v1.2.96
+	github.com/go-yaaf/yaaf-common v1.2.106
 	github.com/stretchr/testify v1.8.1
 )
 
@@ -12,7 +12,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/golang-jwt/jwt/v4 v4.4.3 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/jaevor/go-nanoid v1.2.0 // indirect
 	github.com/onsi/gomega v1.24.1 // indirect

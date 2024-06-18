@@ -119,6 +119,7 @@ func getRedisClient(URI string) (*redis.Client, error) {
 	} else {
 		// Create Redis client and set client name
 		redisClient := redis.NewClient(options)
+
 		if redisClient == nil {
 			return nil, fmt.Errorf("can't create client")
 		} else {

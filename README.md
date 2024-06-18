@@ -24,4 +24,30 @@ Then import the validator package into your own code.
 	import "github.com/go-yaaf/yaaf-common-redis"
 
 
+Usage
+------------
+Use Redis wrapper using a connection string: 
+* redis://host:port/12
+* redis://host:port/db_number
 
+> db_number must be in the range of 0 - 15, the default is 0
+```go
+import (
+    "fmt"
+    "time"
+
+    . "github.com/go-yaaf/yaaf-common-redis/redis"
+    . "github.com/go-yaaf/yaaf-common/database"
+)
+
+func main() {
+    uri := "redis://localhost:6379/12"
+    dc, err := NewRedisDataCache(uri)
+    if err != nil {
+        panic(any(err))
+    }
+	
+	dc.Ping(5, 5)
+	
+}
+```

@@ -61,7 +61,7 @@ func (s *RedisCacheTestSuite) TearDownSuite() {
 // createSUT creates the system-under-test which is postgresql implementation of IDatabase
 func (s *RedisCacheTestSuite) createSUT() database.IDataCache {
 
-	uri := fmt.Sprintf("redis://localhost:%s", dbPort)
+	uri := fmt.Sprintf("redis://localhost:%s/12", dbPort)
 	sut, err := facilities.NewRedisDataCache(uri)
 	if err != nil {
 		panic(any(err))
@@ -84,6 +84,14 @@ func (s *RedisCacheTestSuite) createSUT() database.IDataCache {
 // TestDatabaseSet operation
 func (s *RedisCacheTestSuite) TestDataCacheSet() {
 
+	for _, item := range list_of_heroes {
+		heroId := fmt.Sprintf("%s:%s", item.TABLE(), item.ID())
+
+		// Set data in cache
+		if err := s.cache.Set(heroId, item); err != nil {
+			s.T().Errorf("error: %s", err.Error())
+		}
+	}
 	hero := NewHero1("100", 100, "New Hero")
 	heroId := fmt.Sprintf("%s:%s", hero.TABLE(), hero.ID())
 

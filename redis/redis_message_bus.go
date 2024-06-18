@@ -205,7 +205,6 @@ func (p *producer) Publish(messages ...IMessage) error {
 		if bytes, err := messageToRaw(message); err != nil {
 			return err
 		} else {
-			p.Publish()
 			if res := p.rc.Publish(context.Background(), message.Topic(), bytes); res.Err() != nil {
 				return res.Err()
 			}

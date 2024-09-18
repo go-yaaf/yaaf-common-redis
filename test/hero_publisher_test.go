@@ -1,11 +1,12 @@
 package test
 
 import (
-	"github.com/go-yaaf/yaaf-common/logger"
-	"github.com/go-yaaf/yaaf-common/messaging"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/go-yaaf/yaaf-common/logger"
+	"github.com/go-yaaf/yaaf-common/messaging"
 )
 
 type HeroPublisher struct {

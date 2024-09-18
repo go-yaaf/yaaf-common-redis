@@ -6,6 +6,7 @@ import (
 	. "github.com/go-yaaf/yaaf-common/entity"
 	. "github.com/go-yaaf/yaaf-common/messaging"
 	"github.com/go-yaaf/yaaf-common/utils/binary"
+	"math/rand"
 	"time"
 )
 
@@ -90,6 +91,16 @@ var list_of_heroes = []Entity{
 	NewHero1("30", 30, "X-Man"),
 }
 
+func GetRandomHero() Entity {
+	ind := rand.Intn(len(list_of_heroes))
+	return list_of_heroes[ind]
+}
+
+func GetRandomHeroMessage(topic string) IMessage {
+	hero := GetRandomHero()
+	return newHeroMessage(topic, hero.(*Hero))
+}
+
 // endregion
 
 // region Domain message for the Test -----------------------------------------------------------------------------------
@@ -112,6 +123,7 @@ func newHeroMessage(topic string, hero *Hero) IMessage {
 	message.MsgTopic = topic
 	message.MsgOpCode = int(time.Now().Unix())
 	message.MsgSessionId = NanoID()
+	message.MsgAddressee = hero.Name
 	return message
 }
 

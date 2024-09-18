@@ -7,9 +7,9 @@ import (
 	"context"
 	"errors"
 	"strconv"
-
-	"github.com/go-redis/redis/v8"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 var (
@@ -73,7 +73,7 @@ func (l *Locker) Refresh(ctx context.Context, ttl time.Duration) error {
 // Release manually releases the lock.
 func (l *Locker) Release(ctx context.Context) error {
 	res, err := luaRelease.Run(ctx, l.rc, []string{l.key}, l.token).Result()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return ErrLockNotHeld
 	} else if err != nil {
 		return err

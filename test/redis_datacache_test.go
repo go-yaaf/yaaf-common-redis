@@ -37,7 +37,7 @@ func TestRedisCacheTestSuite(t *testing.T) {
 func (s *RedisCacheTestSuite) SetupSuite() {
 
 	// Create command to run postgresql container
-	err := utils.DockerUtils().CreateContainer("redis:7").
+	err := utils.DockerUtils().CreateContainer("redis:7.4.0").
 		Name(containerName).
 		Port(dbPort, dbPort).
 		Label("env", "test").

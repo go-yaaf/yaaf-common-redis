@@ -2,9 +2,10 @@ package test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/go-yaaf/yaaf-common-redis/redis"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestRedisCacheBinaryMarshal(t *testing.T) {

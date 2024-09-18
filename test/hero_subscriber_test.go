@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+
 	"github.com/go-yaaf/yaaf-common/logger"
 	"github.com/go-yaaf/yaaf-common/messaging"
 )

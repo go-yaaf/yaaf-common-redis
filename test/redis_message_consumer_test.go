@@ -90,7 +90,7 @@ func (s *RedisConsumerTestSuite) TestRedisMessageBus_Consumer() {
 
 	wg.Wait()
 
-	if er := consumer.Close(); err != nil {
+	if er := consumer.Close(); er != nil {
 		logger.Info("Error closing consumer: %s", er)
 	}
 

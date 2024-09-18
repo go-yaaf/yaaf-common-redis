@@ -5,8 +5,9 @@ package test
 
 import (
 	"fmt"
-	"github.com/go-yaaf/yaaf-common-redis/redis"
 	"testing"
+
+	"github.com/go-yaaf/yaaf-common-redis/redis"
 )
 
 func TestRedisAdapterKey(t *testing.T) {

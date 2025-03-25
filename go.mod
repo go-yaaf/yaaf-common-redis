@@ -2,8 +2,6 @@ module github.com/go-yaaf/yaaf-common-redis
 
 go 1.22
 
-toolchain go1.23.1
-
 require (
 	github.com/go-yaaf/yaaf-common v1.2.148
 	github.com/redis/go-redis/v9 v9.7.3

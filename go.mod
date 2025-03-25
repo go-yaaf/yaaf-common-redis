@@ -5,8 +5,8 @@ go 1.22
 toolchain go1.23.1
 
 require (
-	github.com/go-yaaf/yaaf-common v1.2.134
-	github.com/redis/go-redis/v9 v9.7.0
+	github.com/go-yaaf/yaaf-common v1.2.148
+	github.com/redis/go-redis/v9 v9.7.3
 	github.com/stretchr/testify v1.10.0
 )
 

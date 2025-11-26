@@ -102,7 +102,7 @@ func (s *RedisCacheTestSuite) TestDataCacheSet() {
 
 	// Get data from cache
 	if result, err := s.cache.Get(NewHero, heroId); err != nil {
-		s.T().Errorf(err.Error())
+		s.T().Errorf("error: %s", err.Error())
 	} else {
 		fmt.Println(result.ID(), result.NAME())
 		require.Equal(s.T(), hero.NAME(), result.NAME(), "not expected result")
@@ -112,7 +112,7 @@ func (s *RedisCacheTestSuite) TestDataCacheSet() {
 // TestDataCacheScan operation
 func (s *RedisCacheTestSuite) TestDataCacheScan() {
 	if keys, cur, err := s.cache.Scan(0, "", 100); err != nil {
-		s.T().Errorf(err.Error())
+		s.T().Errorf("error: %s", err.Error())
 	} else {
 		fmt.Println("cursor", cur)
 		for i, key := range keys {

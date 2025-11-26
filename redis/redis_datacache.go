@@ -13,7 +13,7 @@ import (
 
 // region Key actions ----------------------------------------------------------------------------------------------
 
-// GetRaw gets the value of a key in a byte array format
+// GetRaw gets the value of a key in a byte array format.
 func (r *RedisAdapter) GetRaw(key string) ([]byte, error) {
 	var bytes []byte
 	cmd := r.rc.Get(r.ctx, key)
@@ -28,7 +28,7 @@ func (r *RedisAdapter) GetRaw(key string) ([]byte, error) {
 	}
 }
 
-// Get gets the value of a key as entity
+// Get gets the value of a key and decodes it into an entity.
 func (r *RedisAdapter) Get(factory EntityFactory, key string) (Entity, error) {
 	if bytes, err := r.GetRaw(key); err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func (r *RedisAdapter) Get(factory EntityFactory, key string) (Entity, error) {
 	}
 }
 
-// SetRaw sets value of key in a byte array format
+// SetRaw sets the value of a key from a byte array, with an optional expiration.
 func (r *RedisAdapter) SetRaw(key string, bytes []byte, expiration ...time.Duration) error {
 	if len(expiration) > 0 {
 		return r.rc.Set(r.ctx, key, bytes, expiration[0]).Err()
@@ -46,7 +46,7 @@ func (r *RedisAdapter) SetRaw(key string, bytes []byte, expiration ...time.Durat
 	}
 }
 
-// Set sets value of key with optional expiration
+// Set sets the value of a key from an entity, with an optional expiration.
 func (r *RedisAdapter) Set(key string, entity Entity, expiration ...time.Duration) error {
 	if bytes, err := entityToRaw(entity); err != nil {
 		return err
@@ -55,7 +55,8 @@ func (r *RedisAdapter) Set(key string, entity Entity, expiration ...time.Duratio
 	}
 }
 
-// SetNX sets value of key only if it is not exist with optional expiration, return false if the key exists
+// SetNX sets the value of a key from an entity only if the key does not already exist.
+// It returns false if the key exists. An optional expiration can be provided.
 func (r *RedisAdapter) SetNX(key string, entity Entity, expiration ...time.Duration) (bool, error) {
 	if bytes, err := entityToRaw(entity); err != nil {
 		return false, err
@@ -64,7 +65,8 @@ func (r *RedisAdapter) SetNX(key string, entity Entity, expiration ...time.Durat
 	}
 }
 
-// SetRawNX sets bytes value of key only if it is not exist with optional expiration, return false if the key exists
+// SetRawNX sets the value of a key from a byte array only if the key does not already exist.
+// It returns false if the key exists. An optional expiration can be provided.
 func (r *RedisAdapter) SetRawNX(key string, bytes []byte, expiration ...time.Duration) (bool, error) {
 	var exp time.Duration = 0
 	if len(expiration) > 0 {
@@ -73,12 +75,12 @@ func (r *RedisAdapter) SetRawNX(key string, bytes []byte, expiration ...time.Dur
 	return r.rc.SetNX(r.ctx, key, bytes, exp).Result()
 }
 
-// Del Delete keys
+// Del deletes one or more keys.
 func (r *RedisAdapter) Del(keys ...string) error {
 	return r.rc.Del(r.ctx, keys...).Err()
 }
 
-// GetKeys Get the value of all the given keys
+// GetKeys gets the values of all the given keys as entities.
 func (r *RedisAdapter) GetKeys(factory EntityFactory, keys ...string) ([]Entity, error) {
 	cmd := r.rc.MGet(r.ctx, keys...)
 	if cmd.Err() != nil {
@@ -90,15 +92,17 @@ func (r *RedisAdapter) GetKeys(factory EntityFactory, keys ...string) ([]Entity,
 	} else {
 		entities := make([]Entity, 0)
 		for _, item := range list {
-			if entity, err := rawToEntity(factory, item.([]byte)); err == nil {
-				entities = append(entities, entity)
+			if item != nil {
+				if entity, err := rawToEntity(factory, item.([]byte)); err == nil {
+					entities = append(entities, entity)
+				}
 			}
 		}
 		return entities, nil
 	}
 }
 
-// GetRawKeys Get the value of all the given keys
+// GetRawKeys gets the raw values of all the given keys.
 func (r *RedisAdapter) GetRawKeys(keys ...string) ([]Tuple[string, []byte], error) {
 	cmd := r.rc.MGet(r.ctx, keys...)
 	if cmd.Err() != nil {
@@ -110,14 +114,16 @@ func (r *RedisAdapter) GetRawKeys(keys ...string) ([]Tuple[string, []byte], erro
 	} else {
 		tuples := make([]Tuple[string, []byte], 0)
 		for i, item := range list {
-			tuple := Tuple[string, []byte]{Key: fmt.Sprintf("%d", i), Value: item.([]byte)}
-			tuples = append(tuples, tuple)
+			if item != nil {
+				tuple := Tuple[string, []byte]{Key: keys[i], Value: item.([]byte)}
+				tuples = append(tuples, tuple)
+			}
 		}
 		return tuples, nil
 	}
 }
 
-// AddRaw Set the byte array value of a key only if the key does not exist
+// AddRaw sets the byte array value of a key only if the key does not exist.
 func (r *RedisAdapter) AddRaw(key string, bytes []byte, expiration time.Duration) (bool, error) {
 	if cmd := r.rc.SetNX(r.ctx, key, bytes, expiration); cmd.Err() != nil {
 		return false, cmd.Err()
@@ -126,7 +132,7 @@ func (r *RedisAdapter) AddRaw(key string, bytes []byte, expiration time.Duration
 	}
 }
 
-// Add Set the value of a key only if the key does not exist
+// Add sets the value of a key from an entity only if the key does not exist.
 func (r *RedisAdapter) Add(key string, entity Entity, expiration time.Duration) (bool, error) {
 	if bytes, err := entityToRaw(entity); err != nil {
 		return false, err
@@ -135,12 +141,12 @@ func (r *RedisAdapter) Add(key string, entity Entity, expiration time.Duration) 
 	}
 }
 
-// Rename a key
+// Rename renames a key.
 func (r *RedisAdapter) Rename(key string, newKey string) error {
 	return r.rc.Rename(r.ctx, key, newKey).Err()
 }
 
-// Scan keys from the provided cursor
+// Scan iterates through keys from the provided cursor that match a pattern.
 func (r *RedisAdapter) Scan(from uint64, match string, count int64) (keys []string, cursor uint64, err error) {
 	scanCmd := r.rc.Scan(r.ctx, from, match, count)
 	if err = scanCmd.Err(); err != nil {
@@ -154,7 +160,7 @@ func (r *RedisAdapter) Scan(from uint64, match string, count int64) (keys []stri
 	}
 }
 
-// Exists Check if key exists
+// Exists checks if a key exists.
 func (r *RedisAdapter) Exists(key string) (result bool, err error) {
 	if cmd := r.rc.Exists(r.ctx, key); cmd.Err() != nil {
 		return false, cmd.Err()
@@ -167,7 +173,7 @@ func (r *RedisAdapter) Exists(key string) (result bool, err error) {
 
 // region Hash actions ---------------------------------------------------------------------------------------------
 
-// HGet Get the value of a hash field
+// HGet gets the value of a hash field and decodes it into an entity.
 func (r *RedisAdapter) HGet(factory EntityFactory, key, field string) (Entity, error) {
 	if bytes, err := r.HGetRaw(key, field); err != nil {
 		return nil, err
@@ -176,7 +182,7 @@ func (r *RedisAdapter) HGet(factory EntityFactory, key, field string) (Entity, e
 	}
 }
 
-// HGetRaw gets the rae value of a hash field
+// HGetRaw gets the raw value of a hash field as a byte array.
 func (r *RedisAdapter) HGetRaw(key, field string) ([]byte, error) {
 	cmd := r.rc.HGet(r.ctx, key, field)
 	if cmd.Err() != nil {
@@ -190,7 +196,7 @@ func (r *RedisAdapter) HGetRaw(key, field string) ([]byte, error) {
 	}
 }
 
-// HKeys Get all the fields in a hash
+// HKeys gets all the fields in a hash.
 func (r *RedisAdapter) HKeys(key string) ([]string, error) {
 	if cmd := r.rc.HKeys(r.ctx, key); cmd.Err() != nil {
 		return nil, cmd.Err()
@@ -199,7 +205,7 @@ func (r *RedisAdapter) HKeys(key string) ([]string, error) {
 	}
 }
 
-// HGetAll Get all the fields and values in a hash
+// HGetAll gets all the fields and values in a hash and decodes them into entities.
 func (r *RedisAdapter) HGetAll(factory EntityFactory, key string) (map[string]Entity, error) {
 	if cmd := r.rc.HGetAll(r.ctx, key); cmd.Err() != nil {
 		return nil, cmd.Err()
@@ -214,7 +220,7 @@ func (r *RedisAdapter) HGetAll(factory EntityFactory, key string) (map[string]En
 	}
 }
 
-// HGetRawAll gets all the fields and raw values in a hash
+// HGetRawAll gets all the fields and their raw values in a hash.
 func (r *RedisAdapter) HGetRawAll(key string) (map[string][]byte, error) {
 	if cmd := r.rc.HGetAll(r.ctx, key); cmd.Err() != nil {
 		return nil, cmd.Err()
@@ -227,7 +233,7 @@ func (r *RedisAdapter) HGetRawAll(key string) (map[string][]byte, error) {
 	}
 }
 
-// HSet Set the value of a hash field
+// HSet sets the value of a hash field from an entity.
 func (r *RedisAdapter) HSet(key, field string, entity Entity) error {
 	if bytes, err := entityToRaw(entity); err != nil {
 		return err
@@ -236,12 +242,13 @@ func (r *RedisAdapter) HSet(key, field string, entity Entity) error {
 	}
 }
 
-// HSetRaw sets the raw value of a hash field
+// HSetRaw sets the raw value of a hash field from a byte array.
 func (r *RedisAdapter) HSetRaw(key, field string, bytes []byte) error {
 	return r.rc.HSet(r.ctx, key, field, bytes).Err()
 }
 
-// HSetNX Set value of key only if it is not exist with optional expiration, return false if the key exists
+// HSetNX sets the value of a hash field from an entity only if the field does not already exist.
+// Returns false if the field already exists.
 func (r *RedisAdapter) HSetNX(key string, field string, entity Entity) (bool, error) {
 	if bytes, err := entityToRaw(entity); err != nil {
 		return false, err
@@ -250,17 +257,19 @@ func (r *RedisAdapter) HSetNX(key string, field string, entity Entity) (bool, er
 	}
 }
 
-// HSetRawNX sets the raw value of key only if it is not exist with optional expiration, return false if the key exists
+// HSetRawNX sets the raw value of a hash field from a byte array only if the field does not already exist.
+// Returns false if the field already exists.
 func (r *RedisAdapter) HSetRawNX(key string, field string, bytes []byte) (bool, error) {
 	return r.rc.HSetNX(r.ctx, key, field, bytes).Result()
 }
 
-// HDel Delete one or more hash fields
+// HDel deletes one or more hash fields.
 func (r *RedisAdapter) HDel(key string, fields ...string) error {
 	return r.rc.HDel(r.ctx, key, fields...).Err()
 }
 
-// HAdd sets the value of a key only if the key does not exist
+// HAdd sets the value of a hash field from an entity only if the field does not exist.
+// This is an alias for HSetNX.
 func (r *RedisAdapter) HAdd(key, field string, entity Entity) (bool, error) {
 	if bytes, err := entityToRaw(entity); err != nil {
 		return false, err
@@ -273,7 +282,8 @@ func (r *RedisAdapter) HAdd(key, field string, entity Entity) (bool, error) {
 	}
 }
 
-// HAddRaw sets the raw value of a key only if the key does not exist
+// HAddRaw sets the raw value of a hash field from a byte array only if the field does not exist.
+// This is an alias for HSetRawNX.
 func (r *RedisAdapter) HAddRaw(key, field string, bytes []byte) (bool, error) {
 	if err := r.rc.HSetNX(r.ctx, key, field, bytes).Err(); err != nil {
 		return false, err
@@ -282,7 +292,7 @@ func (r *RedisAdapter) HAddRaw(key, field string, bytes []byte) (bool, error) {
 	}
 }
 
-// HExists Check if key exists
+// HExists checks if a field exists in a hash.
 func (r *RedisAdapter) HExists(key, field string) (bool, error) {
 	if cmd := r.rc.HExists(r.ctx, key, field); cmd.Err() != nil {
 		return false, cmd.Err()
@@ -295,25 +305,35 @@ func (r *RedisAdapter) HExists(key, field string) (bool, error) {
 
 // region List actions ---------------------------------------------------------------------------------------------
 
-// RPush Append one or multiple values to a list
+// RPush appends one or multiple values to a list.
 func (r *RedisAdapter) RPush(key string, value ...Entity) error {
-	values := make([]interface{}, 0)
+	values := make([]any, 0)
 	for _, v := range value {
-		values = append(values, v)
+		if bytes, err := entityToRaw(v); err == nil {
+			values = append(values, bytes)
+		}
 	}
-	return r.rc.RPush(r.ctx, key, values...).Err()
+	if len(values) > 0 {
+		return r.rc.RPush(r.ctx, key, values...).Err()
+	}
+	return nil
 }
 
-// LPush Prepend one or multiple values to a list
+// LPush prepends one or multiple values to a list.
 func (r *RedisAdapter) LPush(key string, value ...Entity) error {
-	values := make([]interface{}, 0)
+	values := make([]any, 0)
 	for _, v := range value {
-		values = append(values, v)
+		if bytes, err := entityToRaw(v); err == nil {
+			values = append(values, bytes)
+		}
 	}
-	return r.rc.LPush(r.ctx, key, values...).Err()
+	if len(values) > 0 {
+		return r.rc.LPush(r.ctx, key, values...).Err()
+	}
+	return nil
 }
 
-// RPop Remove and get the last element in a list
+// RPop removes and gets the last element in a list.
 func (r *RedisAdapter) RPop(factory EntityFactory, key string) (Entity, error) {
 	if cmd := r.rc.RPop(r.ctx, key); cmd.Err() != nil {
 		return nil, cmd.Err()
@@ -326,7 +346,7 @@ func (r *RedisAdapter) RPop(factory EntityFactory, key string) (Entity, error) {
 	}
 }
 
-// LPop Remove and get the first element in a list
+// LPop removes and gets the first element in a list.
 func (r *RedisAdapter) LPop(factory EntityFactory, key string) (entity Entity, err error) {
 	if cmd := r.rc.LPop(r.ctx, key); cmd.Err() != nil {
 		return nil, cmd.Err()
@@ -339,7 +359,8 @@ func (r *RedisAdapter) LPop(factory EntityFactory, key string) (entity Entity, e
 	}
 }
 
-// BRPop Remove and get the last element in a list or block until one is available
+// BRPop is a blocking version of RPop. It removes and gets the last element in a list,
+// or blocks until one is available or the timeout is reached.
 func (r *RedisAdapter) BRPop(factory EntityFactory, timeout time.Duration, keys ...string) (key string, entity Entity, err error) {
 	if cmd := r.rc.BRPop(r.ctx, timeout, keys...); cmd.Err() != nil {
 		return "", nil, err
@@ -354,7 +375,8 @@ func (r *RedisAdapter) BRPop(factory EntityFactory, timeout time.Duration, keys 
 	}
 }
 
-// BLPop Remove and get the first element in a list or block until one is available
+// BLPop is a blocking version of LPop. It removes and gets the first element in a list,
+// or blocks until one is available or the timeout is reached.
 func (r *RedisAdapter) BLPop(factory EntityFactory, timeout time.Duration, keys ...string) (key string, entity Entity, err error) {
 	if cmd := r.rc.BLPop(r.ctx, timeout, keys...); cmd.Err() != nil {
 		return "", nil, err
@@ -369,7 +391,7 @@ func (r *RedisAdapter) BLPop(factory EntityFactory, timeout time.Duration, keys 
 	}
 }
 
-// LRange Get a range of elements from list
+// LRange gets a range of elements from a list.
 func (r *RedisAdapter) LRange(factory EntityFactory, key string, start, stop int64) ([]Entity, error) {
 	if list, err := r.rc.LRange(r.ctx, key, start, stop).Result(); err != nil {
 		return nil, err
@@ -384,7 +406,7 @@ func (r *RedisAdapter) LRange(factory EntityFactory, key string, start, stop int
 	}
 }
 
-// LLen Get the length of a list
+// LLen gets the length of a list.
 func (r *RedisAdapter) LLen(key string) (result int64) {
 	return r.rc.LLen(r.ctx, key).Val()
 }
@@ -393,7 +415,8 @@ func (r *RedisAdapter) LLen(key string) (result int64) {
 
 // region Distribute Locker actions ------------------------------------------------------------------------------------
 
-// ObtainLocker tries to obtain a new lock using a key with the given TTL
+// ObtainLocker tries to obtain a new lock using a key with a given TTL.
+// It returns an ILocker instance if the lock is obtained, or an error otherwise.
 func (r *RedisAdapter) ObtainLocker(key string, ttl time.Duration) (ILocker, error) {
 	// Create a random token
 	token := ID()

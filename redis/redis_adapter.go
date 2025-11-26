@@ -20,11 +20,13 @@ import (
 
 // region Data structure and methods  ----------------------------------------------------------------------------------
 
+// subscriber is a private struct to hold subscription details
 type subscriber struct {
 	ps     *redis.PubSub
 	topics []string
 }
 
+// RedisAdapter is a redis based implementation of IDataCache and IMessageBus interfaces
 type RedisAdapter struct {
 	rc   *redis.Client
 	ctx  context.Context
@@ -36,10 +38,9 @@ type RedisAdapter struct {
 	uri   string
 }
 
-// NewRedisDataCache factory method for Redis IDataCache implementation
-//
-// param: URI - represents the redis connection string in the format of: redis://user:password@host:port
-// return: IDataCache instance, error
+// NewRedisDataCache is a factory method for the Redis IDataCache implementation.
+// The URI parameter is a redis connection string in the format of: redis://user:password@host:port
+// It returns a IDataCache instance or an error if the connection fails.
 func NewRedisDataCache(URI string) (dbs database.IDataCache, error error) {
 
 	if redisClient, err := getRedisClient(URI); err != nil {
@@ -54,10 +55,9 @@ func NewRedisDataCache(URI string) (dbs database.IDataCache, error error) {
 	}
 }
 
-// NewRedisMessageBus factory method for Redis IMessageBus implementation
-//
-// param: URI - represents the redis connection string in the format of: redis://user:password@host:port
-// return: IDataCache instance, error
+// NewRedisMessageBus is a factory method for the Redis IMessageBus implementation.
+// The URI parameter is a redis connection string in the format of: redis://user:password@host:port
+// It returns a IMessageBus instance or an error if the connection fails.
 func NewRedisMessageBus(URI string) (mq IMessageBus, error error) {
 
 	if redisClient, err := getRedisClient(URI); err != nil {
@@ -71,7 +71,7 @@ func NewRedisMessageBus(URI string) (mq IMessageBus, error error) {
 	}
 }
 
-// Ping Test connectivity for retries number of time with time interval (in seconds) between retries
+// Ping tests connectivity for a given number of retries with a specific time interval (in seconds) between retries.
 func (r *RedisAdapter) Ping(retries uint, intervalInSeconds uint) error {
 
 	if r.rc == nil {
@@ -89,7 +89,7 @@ func (r *RedisAdapter) Ping(retries uint, intervalInSeconds uint) error {
 	return fmt.Errorf("no connection")
 }
 
-// Close cache and free resources
+// Close disconnects the client from redis and frees up resources.
 func (r *RedisAdapter) Close() error {
 	if r.rc != nil {
 		return r.rc.Close()
@@ -98,12 +98,12 @@ func (r *RedisAdapter) Close() error {
 	}
 }
 
-// CloneDataCache creates a clone of this instance
+// CloneDataCache creates a clone of the IDataCache instance.
 func (r *RedisAdapter) CloneDataCache() (dbs database.IDataCache, err error) {
 	return NewRedisDataCache(r.uri)
 }
 
-// CloneMessageBus creates a clone of this instance
+// CloneMessageBus creates a clone of the IMessageBus instance.
 func (r *RedisAdapter) CloneMessageBus() (dbs IMessageBus, err error) {
 	return NewRedisMessageBus(r.uri)
 }
@@ -112,7 +112,7 @@ func (r *RedisAdapter) CloneMessageBus() (dbs IMessageBus, err error) {
 
 // region PRIVATE SECTION ----------------------------------------------------------------------------------------------
 
-// Get native redis client and provide client name
+// getRedisClient is a helper function to get a native redis client and provide a client name.
 func getRedisClient(URI string) (*redis.Client, error) {
 	if options, err := redis.ParseURL(URI); err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ func getRedisClient(URI string) (*redis.Client, error) {
 	}
 }
 
-// convert raw data to entity
+// rawToEntity is a helper function to convert raw data to an entity.
 func rawToEntity(factory EntityFactory, bytes []byte) (Entity, error) {
 	entity := factory()
 	if err := Unmarshal(bytes, &entity); err != nil {
@@ -143,12 +143,12 @@ func rawToEntity(factory EntityFactory, bytes []byte) (Entity, error) {
 	}
 }
 
-// convert entity to raw data
+// entityToRaw is a helper function to convert an entity to raw data.
 func entityToRaw(entity Entity) ([]byte, error) {
 	return Marshal(entity)
 }
 
-// convert raw data to message
+// rawToMessage is a helper function to convert raw data to a message.
 func rawToMessage(factory MessageFactory, bytes []byte) (IMessage, error) {
 	message := factory()
 	if err := Unmarshal(bytes, &message); err != nil {
@@ -158,12 +158,12 @@ func rawToMessage(factory MessageFactory, bytes []byte) (IMessage, error) {
 	}
 }
 
-// convert message to raw data
+// messageToRaw is a helper function to convert a message to raw data.
 func messageToRaw(message IMessage) ([]byte, error) {
 	return Marshal(message)
 }
 
-// Check if the byte array representing a JSON string
+// isJsonString checks if the byte array represents a JSON string.
 func isJsonString(bytes []byte) bool {
 	if len(bytes) < 2 {
 		return false

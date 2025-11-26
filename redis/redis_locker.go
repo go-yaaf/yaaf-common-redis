@@ -43,7 +43,7 @@ func (l *Locker) Token() string {
 	return l.token
 }
 
-// TTL returns the remaining time-to-live. Returns 0 if the lock has expired.
+// TTL returns the remaining time-to-live of the lock. It returns 0 if the lock has expired.
 func (l *Locker) TTL(ctx context.Context) (time.Duration, error) {
 	res, err := luaPTTL.Run(ctx, l.rc, []string{l.key}, l.token).Result()
 	if err == redis.Nil {

@@ -1,6 +1,6 @@
 module github.com/go-yaaf/yaaf-common-redis/examples/message_queue
 
-go 1.20
+go 1.24.0
 
 require (
 	github.com/go-yaaf/yaaf-common v1.2.64

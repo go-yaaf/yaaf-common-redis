@@ -18,7 +18,7 @@ import (
 
 // region Message Bus actions ------------------------------------------------------------------------------------------
 
-// Publish messages to a channel (topic)
+// Publish publishes messages to a channel (topic).
 func (r *RedisAdapter) Publish(messages ...IMessage) error {
 	for _, message := range messages {
 		if bytes, err := messageToRaw(message); err != nil {
@@ -32,7 +32,9 @@ func (r *RedisAdapter) Publish(messages ...IMessage) error {
 	return nil
 }
 
-// Subscribe on topics
+// Subscribe subscribes to topics and invokes the callback function for each received message.
+// It supports pattern-based subscriptions (e.g., "my-topic-*").
+// It returns a subscription ID or an error.
 func (r *RedisAdapter) Subscribe(subscriberName string, factory MessageFactory, callback SubscriptionCallback, topics ...string) (string, error) {
 
 	topicArray := make([]string, 0)
@@ -63,7 +65,7 @@ func (r *RedisAdapter) Subscribe(subscriberName string, factory MessageFactory, 
 	return subscriptionId, nil
 }
 
-// subscriber is a function running infinite loop to get messages from channel
+// subscriber is a function running an infinite loop to get messages from a channel.
 func (r *RedisAdapter) subscriber(ps *redis.PubSub, callback SubscriptionCallback, factory MessageFactory) {
 
 LOOP:
@@ -83,7 +85,8 @@ LOOP:
 	}
 }
 
-// Unsubscribe with the given subscriber id
+// Unsubscribe removes a subscription by its ID.
+// It returns true if the subscription was found and removed, and false otherwise.
 func (r *RedisAdapter) Unsubscribe(subscriptionId string) bool {
 	r.Lock()
 	defer r.Unlock()
@@ -102,7 +105,7 @@ func (r *RedisAdapter) Unsubscribe(subscriptionId string) bool {
 	}
 }
 
-// Push Append one or multiple messages to a queue
+// Push appends one or multiple messages to a queue (using LPush).
 func (r *RedisAdapter) Push(messages ...IMessage) error {
 	for _, message := range messages {
 		if bytes, err := messageToRaw(message); err != nil {
@@ -116,7 +119,8 @@ func (r *RedisAdapter) Push(messages ...IMessage) error {
 	return nil
 }
 
-// Pop Remove and get the last message in a queue or block until timeout expires
+// Pop removes and gets the last message from a queue (using RPop).
+// If a timeout is provided, it will block until a message is available or the timeout is reached (using BRPop).
 func (r *RedisAdapter) Pop(factory MessageFactory, timeout time.Duration, queue ...string) (IMessage, error) {
 
 	message := factory()
@@ -148,7 +152,7 @@ func (r *RedisAdapter) Pop(factory MessageFactory, timeout time.Duration, queue 
 	}
 }
 
-// CreateProducer creates message producer for specific topic
+// CreateProducer creates a message producer for a specific topic.
 func (r *RedisAdapter) CreateProducer(topic string) (IMessageProducer, error) {
 	return &producer{
 		rc:    r.rc,
@@ -156,7 +160,7 @@ func (r *RedisAdapter) CreateProducer(topic string) (IMessageProducer, error) {
 	}, nil
 }
 
-// CreateConsumer creates message consumer for a specific topic
+// CreateConsumer creates a message consumer for a specific topic or a pattern.
 func (r *RedisAdapter) CreateConsumer(subscription string, mf MessageFactory, topics ...string) (IMessageConsumer, error) {
 
 	topicArray := make([]string, 0)
@@ -190,23 +194,28 @@ func (r *RedisAdapter) CreateConsumer(subscription string, mf MessageFactory, to
 
 // region Producer actions ---------------------------------------------------------------------------------------------
 
+// producer is a redis based implementation of the IMessageProducer interface.
 type producer struct {
 	rc    *redis.Client
 	topic string
 }
 
-// Close cache and free resources
+// Close is a no-op for the redis producer.
 func (p *producer) Close() error {
 	return nil
 }
 
-// Publish messages to a channel (topic)
+// Publish publishes messages to the producer's topic.
 func (p *producer) Publish(messages ...IMessage) error {
 	for _, message := range messages {
 		if bytes, err := messageToRaw(message); err != nil {
 			return err
 		} else {
-			if res := p.rc.Publish(context.Background(), message.Topic(), bytes); res.Err() != nil {
+			topic := message.Topic()
+			if topic == "" {
+				topic = p.topic
+			}
+			if res := p.rc.Publish(context.Background(), topic, bytes); res.Err() != nil {
 				return res.Err()
 			}
 		}
@@ -218,6 +227,7 @@ func (p *producer) Publish(messages ...IMessage) error {
 
 // region Consumer methods  --------------------------------------------------------------------------------------------
 
+// consumer is a redis based implementation of the IMessageConsumer interface.
 type consumer struct {
 	ps        *redis.PubSub
 	factory   MessageFactory
@@ -225,7 +235,7 @@ type consumer struct {
 	topics    []string
 }
 
-// Close cache and free resources
+// Close unsubscribes the consumer from its topics.
 func (p *consumer) Close() error {
 
 	if p.ps == nil {
@@ -239,16 +249,16 @@ func (p *consumer) Close() error {
 	}
 }
 
-// Read message from topic, blocks until a new message arrive or until timeout expires
-// Use 0 instead of time.Duration for unlimited time
-// The standard way to use Read is by using infinite loop:
+// Read reads a message from the topic, blocking until a new message arrives or until the timeout expires.
+// Use 0 for an unlimited timeout.
+// The standard way to use Read is within an infinite loop:
 //
 //	for {
 //		if msg, err := consumer.Read(time.Second * 5); err != nil {
 //			// Handle error
 //		} else {
 //			// Process message in a dedicated go routine
-//			go processTisMessage(msg)
+//			go processThisMessage(msg)
 //		}
 //	}
 func (p *consumer) Read(timeout time.Duration) (IMessage, error) {

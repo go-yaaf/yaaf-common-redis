@@ -3,7 +3,6 @@
 # services for testing and debugging the SUT (System Under Test)
 # In this case, the SUT is yaaf-common-redis.
 
-version: '3.9'
 services:
   redis:
     image: redis:7.4.0

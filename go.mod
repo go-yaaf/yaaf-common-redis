@@ -3,7 +3,7 @@ module github.com/go-yaaf/yaaf-common-redis
 go 1.24.0
 
 require (
-	github.com/go-yaaf/yaaf-common v1.2.173
+	github.com/go-yaaf/yaaf-common v1.2.174
 	github.com/redis/go-redis/v9 v9.17.1
 	github.com/stretchr/testify v1.11.1
 )

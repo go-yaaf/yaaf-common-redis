@@ -1,7 +1,6 @@
 package main
 
 import (
-	cr "github.com/go-yaaf/yaaf-common-redis/redis"
 	"github.com/go-yaaf/yaaf-common/messaging"
 	_ "github.com/go-yaaf/yaaf-common/messaging"
 	"math/rand"
@@ -10,17 +9,17 @@ import (
 )
 
 type StatusPublisher struct {
-	uri      string
 	name     string
 	topic    string
 	duration time.Duration
 	interval time.Duration
 	error    error
+	mq       messaging.IMessageBus
 }
 
 // NewStatusPublisher is a factory method
-func NewStatusPublisher(uri string) *StatusPublisher {
-	return &StatusPublisher{uri: uri, name: "demo", topic: "topic", duration: time.Hour, interval: time.Second}
+func NewStatusPublisher(bus messaging.IMessageBus) *StatusPublisher {
+	return &StatusPublisher{mq: bus, name: "demo", topic: "topic", duration: time.Hour, interval: time.Second}
 }
 
 // Name configure message queue (topic) name
@@ -49,12 +48,7 @@ func (p *StatusPublisher) Interval(interval time.Duration) *StatusPublisher {
 
 // Start the publisher
 func (p *StatusPublisher) Start(wg *sync.WaitGroup) {
-	if mq, err := cr.NewRedisMessageBus(p.uri); err != nil {
-		p.error = err
-		wg.Done()
-	} else {
-		go p.run(wg, mq)
-	}
+	go p.run(wg)
 }
 
 // GetError return error
@@ -63,7 +57,7 @@ func (p *StatusPublisher) GetError() error {
 }
 
 // Run starts the publisher
-func (p *StatusPublisher) run(wg *sync.WaitGroup, mq messaging.IMessageBus) {
+func (p *StatusPublisher) run(wg *sync.WaitGroup) {
 
 	rand.NewSource(time.Now().UnixNano())
 
@@ -75,7 +69,7 @@ func (p *StatusPublisher) run(wg *sync.WaitGroup, mq messaging.IMessageBus) {
 			cpu := rand.Intn(100)
 			ram := rand.Intn(100)
 			message := newStatusMessage(p.topic, NewStatus1(cpu, ram).(*Status))
-			if err := mq.Publish(message); err != nil {
+			if err := p.mq.Publish(message); err != nil {
 				break
 			}
 		case <-after:

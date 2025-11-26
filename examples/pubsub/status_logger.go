@@ -1,21 +1,20 @@
 package main
 
 import (
-	cr "github.com/go-yaaf/yaaf-common-redis/redis"
 	"github.com/go-yaaf/yaaf-common/logger"
 	"github.com/go-yaaf/yaaf-common/messaging"
 )
 
 type StatusLogger struct {
-	uri   string
+	mq    messaging.IMessageBus
 	name  string
 	topic string
 	error error
 }
 
 // NewStatusLogger is a factory method
-func NewStatusLogger(uri string) *StatusLogger {
-	return &StatusLogger{uri: uri, name: "demo", topic: "topic"}
+func NewStatusLogger(bus messaging.IMessageBus) *StatusLogger {
+	return &StatusLogger{mq: bus, name: "demo", topic: "topic"}
 }
 
 // Name configure consumer name
@@ -32,10 +31,10 @@ func (p *StatusLogger) Topic(topic string) *StatusLogger {
 
 // Start the logger
 func (p *StatusLogger) Start() {
-	if mq, err := cr.NewRedisMessageBus(p.uri); err != nil {
+	if subscriber, err := p.mq.Subscribe("subscriber", NewStatusMessage, p.processMessage, p.topic); err != nil {
 		p.error = err
 	} else {
-		mq.Subscribe("subscriber", NewStatusMessage, p.processMessage, p.topic)
+		logger.Info("subscriber: %s is running", subscriber)
 	}
 }
 

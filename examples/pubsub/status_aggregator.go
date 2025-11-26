@@ -1,7 +1,6 @@
 package main
 
 import (
-	cr "github.com/go-yaaf/yaaf-common-redis/redis"
 	"github.com/go-yaaf/yaaf-common/logger"
 	"github.com/go-yaaf/yaaf-common/messaging"
 	"sync"
@@ -9,7 +8,7 @@ import (
 )
 
 type StatusAggregator struct {
-	uri      string
+	mq       messaging.IMessageBus
 	name     string
 	topic    string
 	error    error
@@ -22,9 +21,9 @@ type StatusAggregator struct {
 }
 
 // NewStatusAggregator is a factory method
-func NewStatusAggregator(uri string) *StatusAggregator {
+func NewStatusAggregator(bus messaging.IMessageBus) *StatusAggregator {
 	return &StatusAggregator{
-		uri:      uri,
+		mq:       bus,
 		name:     "demo",
 		topic:    "topic",
 		duration: time.Hour,
@@ -63,10 +62,10 @@ func (p *StatusAggregator) GetError() error {
 
 // Start the consumer
 func (p *StatusAggregator) Start(wg *sync.WaitGroup) {
-	if mq, err := cr.NewRedisMessageBus(p.uri); err != nil {
+	if subscriber, err := p.mq.Subscribe("subscriber", NewStatusMessage, p.processMessage, p.topic); err != nil {
 		p.error = err
 	} else {
-		mq.Subscribe("subscriber", NewStatusMessage, p.processMessage, p.topic)
+		logger.Info("subscriber: %s is running", subscriber)
 		go p.run(wg)
 	}
 }

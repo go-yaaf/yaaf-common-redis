@@ -52,7 +52,7 @@ func newStatusMessage(topic string, status *Status) IMessage {
 	message.MsgTopic = topic
 	message.MsgOpCode = int(time.Now().Unix())
 	message.MsgSessionId = NanoID()
-	message.MsgPayload = status
+	message.Status = status
 	return message
 }
 

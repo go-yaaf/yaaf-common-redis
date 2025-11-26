@@ -1,7 +1,6 @@
 package main
 
 import (
-	cr "github.com/go-yaaf/yaaf-common-redis/redis"
 	"github.com/go-yaaf/yaaf-common/logger"
 	"github.com/go-yaaf/yaaf-common/messaging"
 	_ "github.com/go-yaaf/yaaf-common/messaging"
@@ -11,15 +10,15 @@ import (
 )
 
 type RedisConsumer struct {
-	uri   string
 	name  string
 	queue string
 	error error
+	mq    messaging.IMessageBus
 }
 
 // NewRedisConsumer is a factory method
-func NewRedisConsumer(uri string) *RedisConsumer {
-	return &RedisConsumer{uri: uri, name: "demo", queue: "queue"}
+func NewRedisConsumer(bus messaging.IMessageBus) *RedisConsumer {
+	return &RedisConsumer{mq: bus, name: "demo", queue: "queue"}
 }
 
 // Name configure message queue (topic) name
@@ -36,12 +35,7 @@ func (p *RedisConsumer) Queue(queue string) *RedisConsumer {
 
 // Start the publisher
 func (p *RedisConsumer) Start(wg *sync.WaitGroup) {
-	if mq, err := cr.NewRedisMessageBus(p.uri); err != nil {
-		p.error = err
-		wg.Done()
-	} else {
-		go p.run(wg, mq)
-	}
+	go p.run(wg)
 }
 
 // GetError return error
@@ -50,17 +44,13 @@ func (p *RedisConsumer) GetError() error {
 }
 
 // Run starts the publisher
-func (p *RedisConsumer) run(wg *sync.WaitGroup, mq messaging.IMessageBus) {
-
-	//if wg != nil {
-	//	defer wg.Done()
-	//}
+func (p *RedisConsumer) run(wg *sync.WaitGroup) {
 
 	rand.NewSource(time.Now().UnixNano())
 
 	// Run consumer until no messages are in the queue
 	for {
-		if msg, err := mq.Pop(NewStatusMessage, time.Minute, p.queue); err != nil {
+		if msg, err := p.mq.Pop(NewStatusMessage, time.Minute, p.queue); err != nil {
 			logger.Error("Error pop message: %s", err.Error())
 			if wg != nil {
 				wg.Done()

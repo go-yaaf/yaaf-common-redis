@@ -1,0 +1,457 @@
+# yaaf-common-redis
+
+> Redis-based implementation for distributed caching and messaging in the GO-YAAF ecosystem
+
+## Overview
+
+This library provides Redis implementations for two key interfaces from go-yaaf/yaaf-common:
+- `IDataCache`: Distributed data caching with support for key-value, hashes, lists, and sets
+- `IMessageBus`: Messaging patterns including Publish/Subscribe and Message Queues
+
+## Installation
+
+```bash
+go get -v -t github.com/go-yaaf/yaaf-common-redis
+```
+
+Import:
+```go
+import facilities "github.com/go-yaaf/yaaf-common-redis/redis"
+```
+
+## Connection
+
+Connection URI format: `redis://<user>:<password>@<host>:<port>/<db_number>`
+- User and password are optional
+- DB number: 0-15 (default: 0)
+
+Examples:
+- `redis://localhost:6379`
+- `redis://user:secret@my-redis:6379/2`
+
+## Factory Methods
+
+```go
+// Create data cache instance
+dataCache, err := facilities.NewRedisDataCache("redis://localhost:6379/0")
+
+// Create message bus instance
+messageBus, err := facilities.NewRedisMessageBus("redis://localhost:6379/0")
+
+// Note: RedisAdapter implements both interfaces
+// A single instance can be used for both caching and messaging
+```
+
+## IDataCache - Key Operations
+
+### Basic Key-Value
+
+```go
+// Set a value with optional expiration
+err := cache.Set("key", entity, 5*time.Minute)
+
+// Get a value
+entity, err := cache.Get(func() entity.Entity { return &MyEntity{} }, "key")
+
+// SetNX - set only if not exists
+ok, err := cache.SetNX("key", entity, 5*time.Minute)
+
+// Delete keys
+err := cache.Del("key1", "key2")
+
+// Check if key exists
+exists, err := cache.Exists("key")
+
+// Rename key
+err := cache.Rename("oldKey", "newKey")
+
+// Scan keys by pattern
+keys, cursor, err := cache.Scan(0, "user:*", 100)
+```
+
+### Raw Operations
+
+```go
+// Set/Get raw bytes
+err := cache.SetRaw("key", []byte("value"), time.Minute)
+bytes, err := cache.GetRaw("key")
+
+// Batch operations
+entities, err := cache.GetKeys(factory, "key1", "key2")
+tuples, err := cache.GetRawKeys("key1", "key2")
+```
+
+## IDataCache - Hash Operations
+
+```go
+// Set hash field
+err := cache.HSet("hash:1", "field", entity)
+
+// Get hash field
+entity, err := cache.HGet(factory, "hash:1", "field")
+
+// Get all fields
+allFields, err := cache.HGetAll(factory, "hash:1")
+
+// Get all field names
+keys, err := cache.HKeys("hash:1")
+
+// SetNX for hash field
+ok, err := cache.HSetNX("hash:1", "field", entity)
+
+// Delete hash fields
+err := cache.HDel("hash:1", "field1", "field2")
+
+// Check if field exists
+exists, err := cache.HExists("hash:1", "field")
+
+// Raw hash operations
+err := cache.HSetRaw("hash:1", "field", []byte("value"))
+bytes, err := cache.HGetRaw("hash:1", "field")
+rawAll, err := cache.HGetRawAll("hash:1")
+```
+
+## IDataCache - List Operations
+
+```go
+// Push to right (append)
+err := cache.RPush("list:1", entity1, entity2)
+
+// Push to left (prepend)
+err := cache.LPush("list:1", entity1, entity2)
+
+// Pop from right
+entity, err := cache.RPop(factory, "list:1")
+
+// Pop from left
+entity, err := cache.LPop(factory, "list:1")
+
+// Blocking pop (waits for timeout)
+key, entity, err := cache.BRPop(factory, 5*time.Second, "list:1", "list:2")
+key, entity, err := cache.BLPop(factory, 5*time.Second, "list:1", "list:2")
+
+// Get range of elements
+entities, err := cache.LRange(factory, "list:1", 0, -1) // all elements
+
+// Get list length
+length := cache.LLen("list:1")
+```
+
+## IDataCache - Distributed Locking
+
+```go
+// Obtain a lock
+locker, err := cache.ObtainLocker("lock:resource", 10*time.Second)
+if err != nil {
+    // Lock already held by another client
+}
+defer locker.Release()
+
+// Use the lock
+// ... protected code here ...
+```
+
+## IMessageBus - Publish/Subscribe Pattern
+
+For broadcasting messages to multiple subscribers.
+
+### Define a Message
+
+```go
+package model
+
+import "github.com/go-yaaf/yaaf-common/messaging"
+
+type MyMessage struct {
+    messaging.BaseMessage
+    Text string `json:"text"`
+}
+
+func NewMessage(topic, text string) *MyMessage {
+    return &MyMessage{
+        BaseMessage: messaging.NewBaseMessage(topic),
+        Text:        text,
+    }
+}
+```
+
+### Subscribe
+
+```go
+// Define callback
+callback := func(msg messaging.IMessage) {
+    myMsg := msg.(*model.MyMessage)
+    fmt.Printf("Received: %s on topic %s\n", myMsg.Text, myMsg.Topic())
+}
+
+// Subscribe to topic(s)
+subscriptionId, err := messageBus.Subscribe(
+    "subscriber-name",
+    func() messaging.IMessage { return &model.MyMessage{} },
+    callback,
+    "my-topic",
+)
+
+// Pattern subscription (wildcard support)
+subscriptionId, err := messageBus.Subscribe(
+    "subscriber-name",
+    factory,
+    callback,
+    "my-topic-*", // Matches my-topic-1, my-topic-2, etc.
+)
+
+// Unsubscribe
+messageBus.Unsubscribe(subscriptionId)
+```
+
+### Publish
+
+```go
+msg := model.NewMessage("my-topic", "Hello, Pub/Sub!")
+err := messageBus.Publish(msg)
+
+// Publish multiple messages
+err := messageBus.Publish(msg1, msg2, msg3)
+```
+
+### Producer/Consumer Pattern
+
+```go
+// Create producer
+producer, err := messageBus.CreateProducer("my-topic")
+err = producer.Publish(msg1, msg2)
+producer.Close()
+
+// Create consumer
+consumer, err := messageBus.CreateConsumer(
+    "subscription-name",
+    func() messaging.IMessage { return &model.MyMessage{} },
+    "my-topic",
+)
+
+// Read messages in loop
+for {
+    msg, err := consumer.Read(5 * time.Second)
+    if err != nil {
+        // Handle timeout or error
+        continue
+    }
+    go processMessage(msg)
+}
+
+consumer.Close()
+```
+
+## IMessageBus - Message Queue Pattern
+
+For point-to-point messaging where each message is processed by a single consumer.
+
+### Push to Queue
+
+```go
+msg := model.NewMessage("my-queue", "Hello, Queue!")
+err := messageBus.Push(msg)
+
+// Push multiple messages
+err := messageBus.Push(msg1, msg2, msg3)
+```
+
+### Pop from Queue
+
+```go
+// Non-blocking pop (timeout = 0)
+msg, err := messageBus.Pop(
+    func() messaging.IMessage { return &model.MyMessage{} },
+    0,
+    "my-queue",
+)
+
+// Blocking pop with timeout
+msg, err := messageBus.Pop(
+    func() messaging.IMessage { return &model.MyMessage{} },
+    5*time.Second,
+    "my-queue",
+)
+```
+
+## Entity Requirements
+
+Entities must implement `entity.Entity` interface from go-yaaf/yaaf-common:
+
+```go
+import "github.com/go-yaaf/yaaf-common/entity"
+
+type Hero struct {
+    entity.BaseEntity
+    Name    string `json:"name"`
+    Power   string `json:"power"`
+    Friends int    `json:"friends"`
+}
+
+func (h *Hero) TABLE() string { return "heroes" }
+
+func NewHero(id, name, power string, friends int) *Hero {
+    return &Hero{
+        BaseEntity: entity.NewBaseEntity(id),
+        Name:       name,
+        Power:      power,
+        Friends:    friends,
+    }
+}
+```
+
+## Entity Factory Pattern
+
+Most methods require an EntityFactory or MessageFactory parameter:
+
+```go
+// EntityFactory creates a new instance of an entity
+factory := func() entity.Entity { return &Hero{} }
+
+// Used to deserialize stored data
+hero, err := cache.Get(factory, "hero:1")
+
+// MessageFactory creates a new instance of a message
+msgFactory := func() messaging.IMessage { return &MyMessage{} }
+
+// Used to deserialize received messages
+msg, err := messageBus.Pop(msgFactory, 5*time.Second, "queue")
+```
+
+## Connection Management
+
+```go
+// Check connectivity
+err := cache.Ping(3, 1) // 3 retries, 1 second interval
+
+// Close connection
+err := cache.Close()
+
+// Clone instances
+newCache, err := cache.CloneDataCache()
+newBus, err := messageBus.CloneMessageBus()
+```
+
+## Common Patterns
+
+### Storing Simple Values
+
+For simple values, use `entity.Any`:
+
+```go
+import "github.com/go-yaaf/yaaf-common/entity"
+
+// Store
+err := cache.Set("key", &entity.Any{Value: "hello"}, time.Minute)
+
+// Retrieve
+result, err := cache.Get(func() entity.Entity { return &entity.Any{} }, "key")
+value := result.(*entity.Any).Value
+```
+
+### Hash as Object Storage
+
+```go
+// Store object fields in hash
+cache.HSet("user:123", "name", &entity.Any{Value: "John"})
+cache.HSet("user:123", "email", &entity.Any{Value: "john@example.com"})
+
+// Get all fields
+allFields, err := cache.HGetAll(
+    func() entity.Entity { return &entity.Any{} },
+    "user:123",
+)
+for field, val := range allFields {
+    fmt.Printf("%s: %v\n", field, val.(*entity.Any).Value)
+}
+```
+
+### Message Queue Worker Pool
+
+```go
+// Multiple workers consuming from same queue
+for i := 0; i < workerCount; i++ {
+    go func() {
+        for {
+            msg, err := messageBus.Pop(factory, 5*time.Second, "work-queue")
+            if err != nil {
+                continue
+            }
+            processWork(msg)
+        }
+    }()
+}
+```
+
+### Pub/Sub with Multiple Topics
+
+```go
+// Subscribe to multiple topics
+subscriptionId, err := messageBus.Subscribe(
+    "multi-subscriber",
+    factory,
+    callback,
+    "topic1", "topic2", "topic3",
+)
+
+// Subscribe with pattern
+subscriptionId, err := messageBus.Subscribe(
+    "pattern-subscriber",
+    factory,
+    callback,
+    "events.*",  // Matches events.user, events.order, etc.
+)
+```
+
+## Important Notes
+
+1. **Single Instance for Both**: RedisAdapter implements both IDataCache and IMessageBus interfaces. You can use the same instance for caching and messaging.
+
+2. **Serialization**: All entities and messages are serialized to JSON before storage/transmission.
+
+3. **Expiration**: Optional expiration parameter is supported for Set, SetRaw, SetNX operations. Default is no expiration (0).
+
+4. **Blocking Operations**: BLPop, BRPop, and Pop with timeout will block until data is available or timeout is reached.
+
+5. **Pattern Matching**: Subscribe supports Redis pattern matching with wildcards (*). Example: "my-topic-*" matches "my-topic-1", "my-topic-2", etc.
+
+6. **Thread Safety**: All operations are thread-safe and can be used concurrently.
+
+7. **Context**: All Redis operations use a background context internally.
+
+8. **DB Selection**: Redis DB number (0-15) can be specified in the connection URI. Default is 0.
+
+## Error Handling
+
+```go
+// Always check errors
+entity, err := cache.Get(factory, "key")
+if err != nil {
+    // Handle error (key not found, connection error, etc.)
+}
+
+// SetNX returns false if key exists (not an error)
+ok, err := cache.SetNX("key", entity, time.Minute)
+if err != nil {
+    // Handle error
+}
+if !ok {
+    // Key already exists
+}
+```
+
+## Examples Location
+
+Complete working examples are available in:
+- `examples/pubsub/`: Publisher and multiple subscribers demo
+- `examples/message_queue/`: Producer and consumer queue demo
+
+## Dependencies
+
+- github.com/go-yaaf/yaaf-common v1.2.182+
+- github.com/redis/go-redis/v9 v9.17.3+
+
+## Version
+
+Current version: 1.2.x
+Requires Go 1.24.0+

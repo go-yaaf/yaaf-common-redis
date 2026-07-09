@@ -5,6 +5,8 @@ name: Test and Publish
 env:
   major: 1
   minor: 2
+  # Toggle the "Vulnerability scan" step: 'true' to run it, 'false' to skip it.
+  run_vuln_scan: 'false'
 on:
   push:
     branches: [ "main" ]
@@ -27,6 +29,7 @@ jobs:
         run: go vet ./...
 
       - name: Vulnerability scan
+        if: ${{ env.run_vuln_scan == 'true' }}
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
 

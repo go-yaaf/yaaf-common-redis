@@ -1,10 +1,10 @@
 module github.com/go-yaaf/yaaf-common-redis
 
-go 1.24.0
+go 1.25.0
 
 require (
-	github.com/go-yaaf/yaaf-common v1.2.185
-	github.com/redis/go-redis/v9 v9.19.0
+	github.com/go-yaaf/yaaf-common v1.2.186
+	github.com/redis/go-redis/v9 v9.21.0
 	github.com/stretchr/testify v1.11.1
 )
 

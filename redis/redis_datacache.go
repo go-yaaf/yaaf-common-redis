@@ -363,10 +363,10 @@ func (r *RedisAdapter) LPop(factory EntityFactory, key string) (entity Entity, e
 // or blocks until one is available or the timeout is reached.
 func (r *RedisAdapter) BRPop(factory EntityFactory, timeout time.Duration, keys ...string) (key string, entity Entity, err error) {
 	if cmd := r.rc.BRPop(r.ctx, timeout, keys...); cmd.Err() != nil {
-		return "", nil, err
+		return "", nil, cmd.Err()
 	} else {
 		if result, er := cmd.Result(); er != nil {
-			return "", nil, err
+			return "", nil, er
 		} else {
 			key = result[0]
 			entity, err = rawToEntity(factory, []byte(result[1]))
@@ -379,10 +379,10 @@ func (r *RedisAdapter) BRPop(factory EntityFactory, timeout time.Duration, keys 
 // or blocks until one is available or the timeout is reached.
 func (r *RedisAdapter) BLPop(factory EntityFactory, timeout time.Duration, keys ...string) (key string, entity Entity, err error) {
 	if cmd := r.rc.BLPop(r.ctx, timeout, keys...); cmd.Err() != nil {
-		return "", nil, err
+		return "", nil, cmd.Err()
 	} else {
 		if result, er := cmd.Result(); er != nil {
-			return "", nil, err
+			return "", nil, er
 		} else {
 			key = result[0]
 			entity, err = rawToEntity(factory, []byte(result[1]))
@@ -418,8 +418,10 @@ func (r *RedisAdapter) LLen(key string) (result int64) {
 // ObtainLocker tries to obtain a new lock using a key with a given TTL.
 // It returns an ILocker instance if the lock is obtained, or an error otherwise.
 func (r *RedisAdapter) ObtainLocker(key string, ttl time.Duration) (ILocker, error) {
-	// Create a random token
-	token := ID()
+	// Create a cryptographically strong, unguessable token.
+	// The token authenticates lock ownership in the Release/Refresh/TTL Lua scripts,
+	// so it must be unpredictable (a timestamp-based ID would be forgeable).
+	token := GUID()
 
 	if ok, err := r.SetRawNX(key, []byte(token), ttl); err != nil {
 		return nil, err

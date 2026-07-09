@@ -16,6 +16,11 @@ import (
 	. "github.com/go-yaaf/yaaf-common/messaging"
 )
 
+// maxConcurrentHandlers bounds the number of message-callback goroutines a single
+// subscription may run concurrently. Without a bound, a high-volume or malicious
+// publisher could spawn unbounded goroutines and exhaust memory (resource-exhaustion DoS).
+const maxConcurrentHandlers = 256
+
 // region Message Bus actions ------------------------------------------------------------------------------------------
 
 // Publish publishes messages to a channel (topic).
@@ -66,7 +71,12 @@ func (r *RedisAdapter) Subscribe(subscriberName string, factory MessageFactory, 
 }
 
 // subscriber is a function running an infinite loop to get messages from a channel.
+// Callbacks are dispatched on bounded goroutines (see maxConcurrentHandlers) so that a
+// burst of incoming messages cannot spawn an unbounded number of goroutines.
 func (r *RedisAdapter) subscriber(ps *redis.PubSub, callback SubscriptionCallback, factory MessageFactory) {
+
+	// Semaphore capping the number of in-flight callback goroutines.
+	sem := make(chan struct{}, maxConcurrentHandlers)
 
 LOOP:
 	for {
@@ -77,10 +87,14 @@ LOOP:
 			}
 			message := factory()
 			if err := Unmarshal([]byte(m.Payload), &message); err != nil {
+				logger.Warn("Subscribe: failed to unmarshal message on topic %s: %s", m.Channel, err.Error())
 				continue
-			} else {
-				go callback(message)
 			}
+			sem <- struct{}{} // blocks (applying back-pressure) once the bound is reached
+			go func() {
+				defer func() { <-sem }()
+				callback(message)
+			}()
 		}
 	}
 }

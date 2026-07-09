@@ -21,13 +21,17 @@ import facilities "github.com/go-yaaf/yaaf-common-redis/redis"
 
 ## Connection
 
-Connection URI format: `redis://<user>:<password>@<host>:<port>/<db_number>`
+Connection URI format: `redis://<user>:<password>@<host>:<port>/<db_number>` (plaintext)
+or `rediss://...` for a TLS-encrypted connection.
 - User and password are optional
 - DB number: 0-15 (default: 0)
+- Production: use `rediss://` (TLS) with an authenticated user/password, never expose Redis
+  publicly, and keep the connection string out of source control, logs, and errors.
 
 Examples:
-- `redis://localhost:6379`
+- `redis://localhost:6379` (local development only)
 - `redis://user:secret@my-redis:6379/2`
+- `rediss://user:secret@my-redis:6380/2` (TLS)
 
 ## Factory Methods
 

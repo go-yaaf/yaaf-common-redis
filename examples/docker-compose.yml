@@ -8,4 +8,6 @@ services:
     image: redis:7.4.0
     restart: always
     ports:
-      - "6379:6379"
+      # Bind to loopback only so the dev instance is never reachable off-host.
+      # For production use an authenticated (requirepass/ACL) instance behind TLS.
+      - "127.0.0.1:6379:6379"

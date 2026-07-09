@@ -35,7 +35,8 @@ import facilities "github.com/go-yaaf/yaaf-common-redis/redis"
 
 The library uses a standard Redis connection string URI to connect to your Redis server.
 
-**Format:** `redis://<user>:<password>@<host>:<port>/<db_number>`
+**Format:** `redis://<user>:<password>@<host>:<port>/<db_number>` (plaintext)
+or `rediss://<user>:<password>@<host>:<port>/<db_number>` (TLS-encrypted).
 
 -   `<user>` and `<password>` are optional.
 -   `<db_number>` must be in the range of 0 - 15. If omitted, it defaults to 0.
@@ -43,6 +44,14 @@ The library uses a standard Redis connection string URI to connect to your Redis
 **Examples:**
 -   `redis://localhost:6379`
 -   `redis://user:secret@my-redis:6379/2`
+-   `rediss://user:secret@my-redis:6380/2` (TLS)
+
+> **Security (production).** Always run Redis with authentication (`requirepass` / an ACL
+> user) and connect over TLS using the `rediss://` scheme so credentials and payloads are
+> not sent in clear text. Do not expose Redis on a public interface. Keep the connection
+> string (which contains the password) out of source control, logs, and error messages —
+> load it from an environment variable or secret manager. The plaintext `redis://localhost`
+> examples in this repo and in `docker-compose.yml` are for **local development only**.
 
 ### Creating an Instance
 

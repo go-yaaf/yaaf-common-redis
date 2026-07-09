@@ -6,6 +6,7 @@ package facilities
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sync"
@@ -33,9 +34,7 @@ type RedisAdapter struct {
 	subs map[string]subscriber
 	sync.RWMutex
 
-	tmp   []byte
-	tmpMu sync.Mutex
-	uri   string
+	uri string
 }
 
 // NewRedisDataCache is a factory method for the Redis IDataCache implementation.
@@ -112,6 +111,32 @@ func (r *RedisAdapter) CloneMessageBus() (dbs IMessageBus, err error) {
 
 // region PRIVATE SECTION ----------------------------------------------------------------------------------------------
 
+// String returns a safe, printable representation of the adapter with the redis
+// password redacted. Implementing fmt.Stringer prevents the embedded connection
+// credentials (held in the uri field for cloning) from leaking through %v/%+v logging.
+func (r *RedisAdapter) String() string {
+	return fmt.Sprintf("RedisAdapter{uri: %s}", redactURI(r.uri))
+}
+
+// redactURI masks the password component of a redis connection string so it is
+// safe to log or display.
+func redactURI(uri string) string {
+	if uri == "" {
+		return ""
+	}
+	parsed, err := url.Parse(uri)
+	if err != nil {
+		// Can't parse - never echo back a value that may contain a password.
+		return "<redacted>"
+	}
+	if parsed.User != nil {
+		if _, hasPassword := parsed.User.Password(); hasPassword {
+			parsed.User = url.UserPassword(parsed.User.Username(), "xxxxx")
+		}
+	}
+	return parsed.String()
+}
+
 // getRedisClient is a helper function to get a native redis client and provide a client name.
 func getRedisClient(URI string) (*redis.Client, error) {
 	if options, err := redis.ParseURL(URI); err != nil {
@@ -161,20 +186,6 @@ func rawToMessage(factory MessageFactory, bytes []byte) (IMessage, error) {
 // messageToRaw is a helper function to convert a message to raw data.
 func messageToRaw(message IMessage) ([]byte, error) {
 	return Marshal(message)
-}
-
-// isJsonString checks if the byte array represents a JSON string.
-func isJsonString(bytes []byte) bool {
-	if len(bytes) < 2 {
-		return false
-	}
-	if string(bytes[0:1]) == "{" && string(bytes[len(bytes)-1:]) == "}" {
-		return true
-	}
-	if string(bytes[0:1]) == "[" && string(bytes[len(bytes)-1:]) == "]" {
-		return true
-	}
-	return false
 }
 
 // endregion
